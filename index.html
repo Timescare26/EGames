@@ -1,6 +1,7 @@
 <!DOCTYPE html><html>
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Mini Arcade Games</title>
 <style>
   body {
@@ -12,7 +13,7 @@
   }
   #menu { padding: 20px; }
   button { margin: 10px; padding: 12px 20px; font-size: 16px; cursor: pointer; border-radius: 10px; }
-  canvas { background: rgba(0,0,0,0.7); display: none; margin: auto; }
+  canvas { background: rgba(0,0,0,0.7); display: none; margin: auto; max-width: 100%; }
   #overlay {
     position: absolute;
     top: 50%;
@@ -26,6 +27,11 @@
     left: 10px;
     font-size: 18px;
   }
+  #controls {
+    display: none;
+    margin-top: 10px;
+  }
+  #controls button { width: 60px; height: 60px; font-size: 20px; }
 </style>
 </head>
 <body><div id="menu">
@@ -39,7 +45,16 @@
   <button onclick="returnHome()">Home</button>
 </div><canvas id="gameCanvas" width="600" height="400"></canvas>
 
-<script>
+<div id="controls">
+  <div>
+    <button onclick="setDir('up')">↑</button>
+  </div>
+  <div>
+    <button onclick="setDir('left')">←</button>
+    <button onclick="setDir('down')">↓</button>
+    <button onclick="setDir('right')">→</button>
+  </div>
+</div><script>
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 let gameInterval;
@@ -54,16 +69,25 @@ function returnHome() {
   canvas.style.display = 'none';
   document.getElementById('menu').style.display = 'block';
   document.getElementById('overlay').style.display = 'none';
+  document.getElementById('controls').style.display = 'none';
   fruits = 0;
 }
 
 /* ================= SNAKE GAME ================= */
 let snake, food, dx, dy, fruits = 0, deaths = 0;
 
+function setDir(d){
+  if(d==='up'){dx=0;dy=-20}
+  if(d==='down'){dx=0;dy=20}
+  if(d==='left'){dx=-20;dy=0}
+  if(d==='right'){dx=20;dy=0}
+}
+
 function startSnake() {
   clearInterval(gameInterval);
   showCanvas();
   document.getElementById('overlay').style.display = 'none';
+  document.getElementById('controls').style.display = 'block';
 
   snake = [{x: 200, y: 200}];
   dx = 20;
@@ -72,10 +96,10 @@ function startSnake() {
   fruits = 0;
 
   document.onkeydown = (e) => {
-    if (e.key === 'ArrowUp') { dx = 0; dy = -20; }
-    if (e.key === 'ArrowDown') { dx = 0; dy = 20; }
-    if (e.key === 'ArrowLeft') { dx = -20; dy = 0; }
-    if (e.key === 'ArrowRight') { dx = 20; dy = 0; }
+    if (e.key === 'ArrowUp') setDir('up');
+    if (e.key === 'ArrowDown') setDir('down');
+    if (e.key === 'ArrowLeft') setDir('left');
+    if (e.key === 'ArrowRight') setDir('right');
   };
 
   gameInterval = setInterval(drawSnake, 100);
@@ -119,6 +143,7 @@ function startRunner() {
   clearInterval(gameInterval);
   showCanvas();
   document.getElementById('score').innerHTML = '';
+  document.getElementById('controls').style.display = 'none';
 
   player = {x: 50, y: 300, w: 30, h: 30, vy: 0};
   obstacles = [];
@@ -127,6 +152,10 @@ function startRunner() {
   document.onkeydown = (e) => {
     if (e.code === 'Space' && player.y === 300) player.vy = -15;
   };
+
+  canvas.addEventListener('touchstart', () => {
+    if (player.y === 300) player.vy = -15;
+  });
 
   gameInterval = setInterval(drawRunner, 30);
 }
