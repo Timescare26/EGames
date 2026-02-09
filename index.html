@@ -1,1 +1,107 @@
+<!DOCTYPE html><html>
+<head>
+<meta charset="UTF-8">
+<title>Mini Arcade Games</title>
+<style>
+  body { margin: 0; font-family: Arial; text-align: center; background: #111; color: white; }
+  #menu { padding: 20px; }
+  button { margin: 10px; padding: 12px 20px; font-size: 16px; cursor: pointer; border-radius: 10px; }
+  canvas { background: black; display: none; margin: auto; }
+</style>
+</head>
+<body><div id="menu">
+  <h1>Mini Arcade</h1>
+  <button onclick="startSnake()">Play Snake</button>
+  <button onclick="startRunner()">Play Runner</button>
+</div><canvas id="gameCanvas" width="600" height="400"></canvas>
 
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+let gameInterval;
+
+function showCanvas() {
+  document.getElementById('menu').style.display = 'none';
+  canvas.style.display = 'block';
+}
+
+/* ================= SNAKE GAME ================= */
+let snake, food, dx, dy;
+
+function startSnake() {
+  clearInterval(gameInterval);
+  showCanvas();
+
+  snake = [{x: 200, y: 200}];
+  dx = 20;
+  dy = 0;
+  food = {x: 300, y: 200};
+
+  document.onkeydown = (e) => {
+    if (e.key === 'ArrowUp') { dx = 0; dy = -20; }
+    if (e.key === 'ArrowDown') { dx = 0; dy = 20; }
+    if (e.key === 'ArrowLeft') { dx = -20; dy = 0; }
+    if (e.key === 'ArrowRight') { dx = 20; dy = 0; }
+  };
+
+  gameInterval = setInterval(drawSnake, 100);
+}
+
+function drawSnake() {
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  snake.unshift({x: snake[0].x + dx, y: snake[0].y + dy});
+
+  if (snake[0].x === food.x && snake[0].y === food.y) {
+    food.x = Math.floor(Math.random()*30)*20;
+    food.y = Math.floor(Math.random()*20)*20;
+  } else {
+    snake.pop();
+  }
+
+  ctx.fillStyle = 'red';
+  ctx.fillRect(food.x, food.y, 20, 20);
+
+  ctx.fillStyle = 'lime';
+  snake.forEach(s => ctx.fillRect(s.x, s.y, 20, 20));
+}
+
+/* ================= RUNNER GAME ================= */
+let player, obstacles, gravity;
+
+function startRunner() {
+  clearInterval(gameInterval);
+  showCanvas();
+
+  player = {x: 50, y: 300, w: 30, h: 30, vy: 0};
+  obstacles = [];
+  gravity = 1;
+
+  document.onkeydown = (e) => {
+    if (e.code === 'Space' && player.y === 300) player.vy = -15;
+  };
+
+  gameInterval = setInterval(drawRunner, 30);
+}
+
+function drawRunner() {
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  player.vy += gravity;
+  player.y += player.vy;
+  if (player.y > 300) player.y = 300;
+
+  if (Math.random() < 0.02) {
+    obstacles.push({x: 600, y: 320, w: 20, h: 20});
+  }
+
+  obstacles.forEach(o => o.x -= 5);
+
+  ctx.fillStyle = 'white';
+  ctx.fillRect(player.x, player.y, player.w, player.h);
+
+  ctx.fillStyle = 'red';
+  obstacles.forEach(o => ctx.fillRect(o.x, o.y, o.w, o.h));
+}
+</script></body>
+</html>
