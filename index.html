@@ -3,121 +3,109 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Arcade X Pro+</title>
+<title>Retro Arcade Hub</title>
 
 <style>
 body{
   margin:0;
-  font-family:Arial;
-  color:white;
-  text-align:center;
   overflow:hidden;
-  background: radial-gradient(circle,#0b0015,#000);
+  font-family:Arial;
+  background:black;
+  color:white;
 }
 
-/* ================= INTRO SCREEN (LEVEL UP STYLE) ================= */
-#intro{
+/* ================= STAR BACKGROUND ================= */
+.stars{
   position:fixed;
   inset:0;
-  background:url("https://images.unsplash.com/photo-1527430253228-e93688616381?auto=format&fit=crop&w=1200&q=60");
-  background-size:cover;
+  background:black;
+}
+.star{
+  position:absolute;
+  width:2px;
+  height:2px;
+  background:white;
+  opacity:0.6;
+  animation:move 6s linear infinite;
+}
+@keyframes move{
+  from{transform:translateY(0)}
+  to{transform:translateY(100vh)}
+}
+
+/* ================= MAIN MENU (PIXEL STYLE) ================= */
+#menu{
+  position:absolute;
+  inset:0;
   display:flex;
   flex-direction:column;
   justify-content:center;
   align-items:center;
-  z-index:999;
-  animation:fadeOut 2s ease 3s forwards;
+  z-index:10;
 }
 
-#intro h1{
-  font-size:70px;
-  color:#ffcc00;
-  text-shadow:0 0 20px #ff00cc,0 0 40px #00ffff;
-  animation:zoom 1s ease;
+.pixel-box{
+  padding:30px;
+  border:4px solid #00ffff;
+  box-shadow:0 0 20px #00ffff;
+  background:rgba(0,0,0,0.8);
+  text-align:center;
 }
 
-#intro p{
-  font-size:18px;
-  color:#fff;
-  opacity:0.8;
+.title{
+  font-size:40px;
+  color:#00ffff;
+  text-shadow:0 0 10px #00ffff;
+  margin-bottom:10px;
 }
 
-@keyframes zoom{
-  from{transform:scale(0.5);opacity:0}
-  to{transform:scale(1);opacity:1}
+.subtitle{
+  color:#aaa;
+  margin-bottom:20px;
 }
 
-@keyframes fadeOut{
-  to{opacity:0;visibility:hidden}
-}
-
-/* CRT effect */
-body::after{
-  content:"";
-  position:fixed;
-  inset:0;
-  pointer-events:none;
-  background: repeating-linear-gradient(
-    0deg,
-    rgba(255,255,255,0.04),
-    rgba(255,255,255,0.04) 1px,
-    transparent 2px,
-    transparent 4px
-  );
-}
-
-/* ================= MENU ================= */
-#menu{
-  padding-top:40px;
-}
-
-.neon{
-  font-size:55px;
-  color:#ff00cc;
-  text-shadow:0 0 25px #ff00cc,0 0 40px #00ffff;
-}
-
+/* ================= BUTTON ================= */
 button{
-  padding:14px 22px;
+  padding:12px 20px;
   margin:8px;
   border:none;
-  border-radius:12px;
   cursor:pointer;
-  transition:0.15s;
-}
-button:active{transform:scale(0.9)}
-.selected{background:#ff00cc;color:white}
-
-input{
-  padding:10px;
-  border-radius:10px;
-  border:none;
+  font-weight:bold;
   background:#111;
   color:white;
+  border:2px solid #00ffff;
+  transition:0.2s;
+}
+button:hover{
+  background:#00ffff;
+  color:black;
+  transform:scale(1.05);
+}
+button:active{
+  transform:scale(0.95);
 }
 
 /* ================= ARCADE SCREEN ================= */
-#arcade{
+#gameScreen{
   display:none;
-  height:100vh;
+  position:absolute;
+  inset:0;
   justify-content:center;
   align-items:center;
 }
 
-.machine{
-  padding:18px;
-  border-radius:18px;
-  border:8px solid #333;
-  box-shadow:0 0 40px #ff00cc;
-  background:#0a0a0a;
+.arcade-frame{
+  border:6px solid #00ffff;
+  box-shadow:0 0 30px #00ffff;
+  background:black;
+  padding:10px;
 }
 
 canvas{
-  width:92vw;
+  width:90vw;
   max-width:600px;
   height:auto;
   background:black;
-  border-radius:10px;
 }
 
 /* ================= SCORE ================= */
@@ -125,74 +113,90 @@ canvas{
   position:absolute;
   top:10px;
   left:10px;
-  font-size:14px;
   color:#00ffff;
+  font-size:14px;
 }
 
 /* ================= OVERLAY ================= */
 #overlay{
   position:absolute;
-  top:50%;
-  left:50%;
-  transform:translate(-50%,-50%);
+  inset:0;
   display:none;
+  justify-content:center;
+  align-items:center;
+  flex-direction:column;
+  background:rgba(0,0,0,0.8);
+  z-index:20;
 }
 </style>
 </head>
 
 <body>
 
-<!-- INTRO -->
-<div id="intro">
-  <h1>ARCADE X</h1>
-  <p>Press Start Button</p>
-</div>
+<!-- STAR BACKGROUND -->
+<div class="stars" id="stars"></div>
 
 <!-- MENU -->
 <div id="menu">
-  <div class="neon">EGAMES</div>
+  <div class="pixel-box">
+    <div class="title">START NEW GAME</div>
+    <div class="subtitle">RETRO ARCADE HUB</div>
 
-  <button onclick="select('snake',this)">🐍 Snake</button>
-  <button onclick="select('runner',this)">🏃 Runner</button>
-  <button onclick="select('pong',this)">🏓 Pong</button><br>
+    <button onclick="select('snake')">🐍 Snake</button>
+    <button onclick="select('runner')">🏃 Runner</button>
+    <button onclick="select('pong')">🏓 Pong</button><br>
 
-  <input id="name" placeholder="Player Name"><br>
-  <button onclick="start()">START</button>
+    <button onclick="startGame()">▶ PLAY</button>
+  </div>
 </div>
 
+<!-- SCORE -->
 <div id="score"></div>
 
-<div id="overlay">
-  <h2>GAME OVER</h2>
-  <button onclick="start()">RESTART</button>
-  <button onclick="home()">HOME</button>
-</div>
-
-<div id="arcade">
-  <div class="machine">
+<!-- GAME SCREEN -->
+<div id="gameScreen">
+  <div class="arcade-frame">
     <canvas id="c" width="600" height="400"></canvas>
   </div>
 </div>
 
+<!-- GAME OVER -->
+<div id="overlay">
+  <h1>GAME OVER</h1>
+  <button onclick="startGame()">RESTART</button>
+  <button onclick="back()">HOME</button>
+</div>
+
 <script>
+/* ================= STARS ================= */
+const starContainer=document.getElementById("stars");
+for(let i=0;i<80;i++){
+  let s=document.createElement("div");
+  s.className="star";
+  s.style.left=Math.random()*100+"vw";
+  s.style.top=Math.random()*100+"vh";
+  s.style.animationDuration=(2+Math.random()*5)+"s";
+  starContainer.appendChild(s);
+}
+
+/* ================= SETUP ================= */
 const c=document.getElementById("c");
 const ctx=c.getContext("2d");
 
-let game=null,loop,name="",score=0;
+let game=null,loop,score=0;
 
-/* ================= MENU ================= */
-function select(g,el){
+/* ================= SELECT GAME ================= */
+function select(g){
   game=g;
-  document.querySelectorAll("button").forEach(b=>b.classList.remove("selected"));
-  el.classList.add("selected");
+  beep(300);
 }
 
-function start(){
-  name=document.getElementById("name").value||"PLAYER";
-  if(!game)return alert("Select game");
+/* ================= START ================= */
+function startGame(){
+  if(!game)return alert("Select game!");
 
   document.getElementById("menu").style.display="none";
-  document.getElementById("arcade").style.display="flex";
+  document.getElementById("gameScreen").style.display="flex";
   document.getElementById("overlay").style.display="none";
 
   clearInterval(loop);
@@ -202,21 +206,21 @@ function start(){
   if(game==="pong") pong();
 }
 
-function home(){
+function back(){
   clearInterval(loop);
-  document.getElementById("arcade").style.display="none";
-  document.getElementById("menu").style.display="block";
+  document.getElementById("menu").style.display="flex";
+  document.getElementById("gameScreen").style.display="none";
+  document.getElementById("overlay").style.display="none";
 }
 
-/* ================= GRID ================= */
-function grid(){
-  ctx.strokeStyle="rgba(255,255,255,0.05)";
-  for(let i=0;i<600;i+=20){
-    ctx.beginPath();
-    ctx.moveTo(i,0);
-    ctx.lineTo(i,400);
-    ctx.stroke();
-  }
+/* ================= SOUND ================= */
+function beep(f){
+  let a=new AudioContext();
+  let o=a.createOscillator();
+  o.frequency.value=f;
+  o.connect(a.destination);
+  o.start();
+  o.stop(a.currentTime+0.08);
 }
 
 /* ================= SNAKE ================= */
@@ -236,7 +240,7 @@ function snake(){
     if((k==="d"||k==="arrowright")&&dx===0){dx=20;dy=0;}
   };
 
-  loop=setInterval(drawSnake,95);
+  loop=setInterval(drawSnake,90);
 }
 
 function food(){
@@ -245,7 +249,6 @@ function food(){
 
 function drawSnake(){
   ctx.clearRect(0,0,600,400);
-  grid();
 
   let h={x:s[0].x+dx,y:s[0].y+dy};
 
@@ -254,7 +257,7 @@ function drawSnake(){
   s.unshift(h);
 
   if(h.x===f.x&&h.y===f.y){
-    score++;
+    score++; beep(600);
     f=food();
   }else s.pop();
 
@@ -275,8 +278,10 @@ function runner(){
   o=[];g=1;score=0;
 
   document.onkeydown=e=>{
-    if((e.code==="Space"||e.key==="ArrowUp")&&p.y===300)
+    if((e.code==="Space"||e.key==="ArrowUp")&&p.y===300){
       p.vy=-15;
+      beep(400);
+    }
   };
 
   loop=setInterval(drawRunner,30);
@@ -284,7 +289,6 @@ function runner(){
 
 function drawRunner(){
   ctx.clearRect(0,0,600,400);
-  grid();
 
   p.vy+=g;
   p.y+=p.vy;
@@ -324,15 +328,13 @@ function pong(){
     if(!hold)return;
     let r=c.getBoundingClientRect();
     pad.x=e.clientX-r.left-pad.w/2;
-    pad.x=Math.max(0,Math.min(600-pad.w,pad.x));
   };
 
-  loop=setInterval(drawPong,22); /* faster ball */
+  loop=setInterval(drawPong,22);
 }
 
 function drawPong(){
   ctx.clearRect(0,0,600,400);
-  grid();
 
   ball.x+=ball.dx;
   ball.y+=ball.dy;
@@ -342,7 +344,7 @@ function drawPong(){
 
   if(ball.y>pad.y&&ball.x>pad.x&&ball.x<pad.x+pad.w){
     ball.dy*=-1;
-    ball.dx*=1.12; /* faster bounce */
+    ball.dx*=1.1;
     score++;
   }
 
@@ -360,13 +362,13 @@ function drawPong(){
 
 /* ================= COMMON ================= */
 function update(){
-  document.getElementById("score").innerText =
-    `${name} | ${game.toUpperCase()} : ${score}`;
+  document.getElementById("score").innerText=
+    `${game.toUpperCase()} | SCORE: ${score}`;
 }
 
 function over(){
   clearInterval(loop);
-  document.getElementById("overlay").style.display="block";
+  document.getElementById("overlay").style.display="flex";
 }
 </script>
 
