@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ultimate Mini Arcade</title>
+<title>Arcade X</title>
 
 <style>
 body{
@@ -12,7 +12,6 @@ body{
   font-family:Arial;
   color:white;
   text-align:center;
-  overflow:hidden;
   background: linear-gradient(270deg,#1b0033,#5a00a8,#0a001a);
   background-size:600% 600%;
   animation:bg 12s infinite;
@@ -23,9 +22,12 @@ body{
   100%{background-position:0%}
 }
 
+/* MENU */
+#menu{animation:fade 1s;}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+
 .neon{
   font-size:60px;
-  color:#ff4fd8;
   text-shadow:0 0 15px #ff00cc,0 0 40px #ff00cc;
 }
 
@@ -35,26 +37,43 @@ button{
   border:none;
   border-radius:15px;
   cursor:pointer;
+  transition:0.2s;
 }
+button:active{transform:scale(0.9)}
 
-.menu button{background:white;color:black;}
-.selected{background:#ff00aa!important;color:white!important;}
+.selected{background:#ff00aa;color:white}
 
 input{
-  padding:12px;
-  border-radius:10px;
+  padding:10px;
   border:none;
-  background:rgba(0,0,0,0.5);
-  color:white;
+  border-radius:10px;
+}
+
+/* ARCADE */
+#arcade{
+  display:none;
+  height:100vh;
+  justify-content:center;
+  align-items:center;
+}
+
+.machine{
+  background:#111;
+  padding:20px;
+  border-radius:20px;
+  border:8px solid #444;
+  box-shadow:0 0 40px #ff00cc;
 }
 
 canvas{
-  display:none;
+  width:90vw;
+  max-width:600px;
   background:black;
-  margin:20px auto;
-  border-radius:15px;
+  border-radius:10px;
 }
 
+/* UI */
+#score{position:absolute;top:10px;left:10px}
 #overlay{
   position:absolute;
   top:50%;
@@ -62,13 +81,6 @@ canvas{
   transform:translate(-50%,-50%);
   display:none;
 }
-
-#score{
-  position:absolute;
-  top:10px;
-  left:10px;
-}
-
 </style>
 
 </head>
@@ -88,12 +100,16 @@ canvas{
 <div id="score"></div>
 
 <div id="overlay">
-  <h2 id="overText">Game Over</h2>
+  <h2>Game Over</h2>
   <button onclick="startGame()">Restart</button>
   <button onclick="home()">Home</button>
 </div>
 
-<canvas id="c" width="600" height="400"></canvas>
+<div id="arcade">
+  <div class="machine">
+    <canvas id="c" width="600" height="400"></canvas>
+  </div>
+</div>
 
 <script>
 const c=document.getElementById("c");
@@ -104,45 +120,57 @@ let score=0,paused=false;
 let highSnake=localStorage.getItem("snakeHigh")||0;
 let highRunner=localStorage.getItem("runnerHigh")||0;
 
-/* ---------- SOUND ---------- */
-function beep(freq){
-  let ctxAudio=new AudioContext();
-  let osc=ctxAudio.createOscillator();
-  osc.frequency.value=freq;
-  osc.connect(ctxAudio.destination);
-  osc.start();
-  osc.stop(ctxAudio.currentTime+0.1);
+/* SOUND */
+function beep(f){
+  let a=new AudioContext();
+  let o=a.createOscillator();
+  o.frequency.value=f;
+  o.connect(a.destination);
+  o.start();
+  o.stop(a.currentTime+0.1);
 }
 
-/* ---------- MENU ---------- */
+/* MENU */
 function selectGame(g,el){
   game=g;
-  document.querySelectorAll(".menu button").forEach(b=>b.classList.remove("selected"));
+  document.querySelectorAll("#menu button").forEach(b=>b.classList.remove("selected"));
   el.classList.add("selected");
 }
 
 function startGame(){
   name=document.getElementById("name").value||"Player";
-  if(!game){alert("Select a game");return;}
+  if(!game){alert("Select game");return;}
 
   document.getElementById("menu").style.display="none";
   document.getElementById("overlay").style.display="none";
-  c.style.display="block";
+  document.getElementById("arcade").style.display="flex";
 
   clearInterval(loop);
+  paused=false;
 
   if(game==="snake") snakeStart();
-  if(game==="runner") runnerStart();
+  else runnerStart();
 }
 
 function home(){
   clearInterval(loop);
-  c.style.display="none";
+  document.getElementById("arcade").style.display="none";
   document.getElementById("menu").style.display="block";
   document.getElementById("overlay").style.display="none";
 }
 
-/* ---------- SNAKE ---------- */
+/* GRID */
+function drawGrid(){
+  ctx.strokeStyle="rgba(255,255,255,0.05)";
+  for(let x=0;x<600;x+=20){
+    ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,400);ctx.stroke();
+  }
+  for(let y=0;y<400;y+=20){
+    ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(600,y);ctx.stroke();
+  }
+}
+
+/* SNAKE */
 let snake,food,dx,dy,speed;
 
 function snakeStart(){
@@ -154,13 +182,11 @@ function snakeStart(){
 
   document.onkeydown=e=>{
     let k=e.key.toLowerCase();
-
-    if((k==="arrowup"||k==="w")&&dy===0){dx=0;dy=-20;}
-    if((k==="arrowdown"||k==="s")&&dy===0){dx=0;dy=20;}
-    if((k==="arrowleft"||k==="a")&&dx===0){dx=-20;dy=0;}
-    if((k==="arrowright"||k==="d")&&dx===0){dx=20;dy=0;}
-
-    if(k==="p") paused=!paused;
+    if((k==="w"||k==="arrowup")&&dy===0){dx=0;dy=-20;}
+    if((k==="s"||k==="arrowdown")&&dy===0){dx=0;dy=20;}
+    if((k==="a"||k==="arrowleft")&&dx===0){dx=-20;dy=0;}
+    if((k==="d"||k==="arrowright")&&dx===0){dx=20;dy=0;}
+    if(k==="p")paused=!paused;
   };
 
   loop=setInterval(drawSnake,speed);
@@ -177,7 +203,8 @@ function spawnFood(){
 function drawSnake(){
   if(paused)return;
 
-  ctx.clearRect(0,0,c.width,c.height);
+  ctx.clearRect(0,0,600,400);
+  drawGrid();
 
   let head={x:snake[0].x+dx,y:snake[0].y+dy};
 
@@ -193,21 +220,29 @@ function drawSnake(){
     score++;
     beep(600);
     food=spawnFood();
-    speed=Math.max(50, speed-2);
+    speed=Math.max(50,speed-2);
     clearInterval(loop);
     loop=setInterval(drawSnake,speed);
   } else snake.pop();
 
-  ctx.fillStyle="red";
-  ctx.fillRect(food.x,food.y,20,20);
+  ctx.shadowBlur=15;
+  snake.forEach((s,i)=>{
+    ctx.fillStyle=i===0?"#00ffff":"#00ff88";
+    ctx.shadowColor="#00ffff";
+    ctx.fillRect(s.x,s.y,20,20);
+  });
 
-  ctx.fillStyle="lime";
-  snake.forEach(s=>ctx.fillRect(s.x,s.y,20,20));
+  ctx.shadowBlur=20;
+  ctx.fillStyle="#ff004c";
+  ctx.beginPath();
+  ctx.arc(food.x+10,food.y+10,10,0,Math.PI*2);
+  ctx.fill();
 
+  ctx.shadowBlur=0;
   updateScore();
 }
 
-/* ---------- RUNNER ---------- */
+/* RUNNER */
 let player,obs,grav,spd;
 
 function runnerStart(){
@@ -222,10 +257,12 @@ function runnerStart(){
       player.vy=-15;
       beep(400);
     }
-    if(e.key==="p") paused=!paused;
+    if(e.key==="p")paused=!paused;
   };
 
-  c.onclick=()=>{if(player.y===300)player.vy=-15;}
+  c.addEventListener("touchstart",()=>{
+    if(player.y===300)player.vy=-15;
+  });
 
   loop=setInterval(drawRunner,30);
 }
@@ -234,6 +271,7 @@ function drawRunner(){
   if(paused)return;
 
   ctx.clearRect(0,0,600,400);
+  drawGrid();
 
   player.vy+=grav;
   player.y+=player.vy;
@@ -252,33 +290,40 @@ function drawRunner(){
     }
   }
 
-  ctx.fillStyle="white";
+  ctx.shadowBlur=20;
+  ctx.fillStyle="#00ccff";
+  ctx.shadowColor="#00ccff";
   ctx.fillRect(player.x,player.y,player.w,player.h);
 
-  ctx.fillStyle="red";
+  ctx.fillStyle="#ff0033";
+  ctx.shadowColor="#ff0033";
   obs.forEach(o=>ctx.fillRect(o.x,o.y,o.w,o.h));
+
+  ctx.shadowBlur=0;
 
   score++;
   updateScore();
 }
 
-/* ---------- COMMON ---------- */
+/* COMMON */
 function updateScore(){
   if(game==="snake"){
     if(score>highSnake){
       highSnake=score;
       localStorage.setItem("snakeHigh",highSnake);
     }
-    document.getElementById("score").innerHTML =
-      `${name} | Snake: ${score} | High: ${highSnake}`;
+    scoreText(`${name} | Snake: ${score} | High: ${highSnake}`);
   }else{
     if(score>highRunner){
       highRunner=score;
       localStorage.setItem("runnerHigh",highRunner);
     }
-    document.getElementById("score").innerHTML =
-      `${name} | Runner: ${score} | High: ${highRunner}`;
+    scoreText(`${name} | Runner: ${score} | High: ${highRunner}`);
   }
+}
+
+function scoreText(t){
+  document.getElementById("score").innerHTML=t;
 }
 
 function gameOver(){
@@ -290,4 +335,3 @@ function gameOver(){
 
 </body>
 </html>
-
