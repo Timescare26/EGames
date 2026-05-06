@@ -1,119 +1,63 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Arcade X Boot</title>
+<title>Arcade X Pro+</title>
 
 <style>
 body{
   margin:0;
   font-family:Arial;
-  overflow:hidden;
   color:white;
+  text-align:center;
+  overflow:hidden;
+  background: radial-gradient(circle,#120018,#000);
 }
 
-/* ---------- BOOT SCREEN ---------- */
-#boot{
+/* CRT overlay */
+body::after{
+  content:"";
   position:fixed;
   inset:0;
-  display:flex;
-  flex-direction:column;
-  justify-content:center;
-  align-items:center;
-  background:#000;
-  z-index:999;
+  pointer-events:none;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(255,255,255,0.03),
+    rgba(255,255,255,0.03) 1px,
+    transparent 2px,
+    transparent 4px
+  );
+  animation:flick 0.12s infinite;
 }
-
-.grid-bg{
-  position:absolute;
-  inset:0;
-  background:
-    linear-gradient(rgba(255,0,0,0.15) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,0,0,0.15) 1px, transparent 1px);
-  background-size:40px 40px;
-  animation:gridMove 6s linear infinite;
-  transform:perspective(600px) rotateX(60deg);
-}
-
-@keyframes gridMove{
-  from{background-position:0 0}
-  to{background-position:0 40px}
-}
-
-#title{
-  font-size:80px;
-  font-weight:bold;
-  background:linear-gradient(90deg,#ffcc00,#ff3300,#00aaff);
-  -webkit-background-clip:text;
-  color:transparent;
-  animation:glow 1.5s infinite alternate;
-  z-index:2;
-}
-
-@keyframes glow{
-  from{filter:drop-shadow(0 0 10px #ff0000);}
-  to{filter:drop-shadow(0 0 30px #ff6600);}
-}
-
-#startBtn{
-  margin-top:20px;
-  padding:12px 25px;
-  font-size:18px;
-  border:none;
-  border-radius:12px;
-  background:white;
-  cursor:pointer;
-  z-index:2;
-  animation:blink 1s infinite;
-}
-
-@keyframes blink{
-  0%,100%{opacity:1}
-  50%{opacity:0.3}
-}
-
-/* ---------- MAIN MENU ---------- */
-#menu{
-  display:none;
-  text-align:center;
-  padding-top:60px;
-  background: linear-gradient(270deg,#1b0033,#5a00a8,#0a001a);
-  background-size:600% 600%;
-  animation:bg 10s infinite;
-  height:100vh;
-}
-
-@keyframes bg{
-  0%{background-position:0%}
-  50%{background-position:100%}
-  100%{background-position:0%}
-}
+@keyframes flick{50%{opacity:0.8}}
 
 .neon{
-  font-size:60px;
-  text-shadow:0 0 20px #ff00cc;
+  font-size:52px;
+  color:#ff00cc;
+  text-shadow:0 0 25px #ff00cc,0 0 40px #00ffff;
 }
 
 button{
-  padding:14px 22px;
-  margin:8px;
+  padding:14px 20px;
+  margin:6px;
   border:none;
   border-radius:12px;
   cursor:pointer;
   transition:0.2s;
 }
 button:active{transform:scale(0.9)}
-.selected{background:#ff00aa;color:white}
+.selected{background:#ff00cc;color:white}
 
 input{
   padding:10px;
   border-radius:10px;
   border:none;
+  background:#111;
+  color:white;
 }
 
-/* ---------- ARCADE ---------- */
+/* arcade frame */
 #arcade{
   display:none;
   height:100vh;
@@ -122,15 +66,15 @@ input{
 }
 
 .machine{
-  background:#111;
   padding:18px;
   border-radius:18px;
-  border:8px solid #444;
-  box-shadow:0 0 35px #ff00cc;
+  border:8px solid #333;
+  box-shadow:0 0 40px #ff00cc;
+  background:#0a0a0a;
 }
 
 canvas{
-  width:90vw;
+  width:92vw;
   max-width:600px;
   background:black;
   border-radius:10px;
@@ -140,6 +84,8 @@ canvas{
   position:absolute;
   top:10px;
   left:10px;
+  font-size:14px;
+  color:#00ffff;
 }
 
 #overlay{
@@ -150,37 +96,28 @@ canvas{
   display:none;
 }
 </style>
-
 </head>
 
 <body>
 
-<!-- BOOT SCREEN -->
-
-<div id="boot">
-  <div class="grid-bg"></div>
-  <div id="title">ARCADE</div>
-  <button id="startBtn" onclick="enter()">Press Start</button>
-</div>
-
-<!-- MENU -->
-
 <div id="menu">
-  <h1>Mini Arcade</h1>
-  <div class="neon">EGames</div>
+  <h1>Arcade X Pro+</h1>
+  <div class="neon">EGAMES</div>
 
-<button onclick="selectGame('snake',this)">🐍 Snake</button> <button onclick="selectGame('runner',this)">🏃 Runner</button> <button onclick="selectGame('pong',this)">🏓 Pong</button><br>
+  <button onclick="select('snake',this)">🐍 Snake</button>
+  <button onclick="select('runner',this)">🏃 Runner</button>
+  <button onclick="select('pong',this)">🏓 Pong</button><br>
 
-<input id="name" placeholder="Enter name"><br> <button onclick="startGame()">Start</button>
-
+  <input id="name" placeholder="Player Name"><br>
+  <button onclick="start()">START</button>
 </div>
 
 <div id="score"></div>
 
 <div id="overlay">
-  <h2>Game Over</h2>
-  <button onclick="startGame()">Restart</button>
-  <button onclick="home()">Home</button>
+  <h2>GAME OVER</h2>
+  <button onclick="start()">RESTART</button>
+  <button onclick="home()">HOME</button>
 </div>
 
 <div id="arcade">
@@ -190,44 +127,21 @@ canvas{
 </div>
 
 <script>
-/* ---------- UI FLOW ---------- */
-function enter(){
-  document.getElementById("boot").style.opacity="0";
-  setTimeout(()=>{
-    document.getElementById("boot").style.display="none";
-    document.getElementById("menu").style.display="block";
-  },800);
-}
-
-/* ---------- BASIC SETUP ---------- */
 const c=document.getElementById("c");
 const ctx=c.getContext("2d");
 
 let game=null,loop,name="";
 let score=0;
 
-/* HIGH SCORE */
-let high={snake:0,runner:0,pong:0};
-
-/* SOUND */
-function beep(f){
-  let a=new AudioContext();
-  let o=a.createOscillator();
-  o.frequency.value=f;
-  o.connect(a.destination);
-  o.start();
-  o.stop(a.currentTime+0.08);
-}
-
-/* MENU */
-function selectGame(g,el){
+/* ================= MENU ================= */
+function select(g,el){
   game=g;
-  document.querySelectorAll("#menu button").forEach(b=>b.classList.remove("selected"));
+  document.querySelectorAll("button").forEach(b=>b.classList.remove("selected"));
   el.classList.add("selected");
 }
 
-function startGame(){
-  name=document.getElementById("name").value||"Player";
+function start(){
+  name=document.getElementById("name").value||"PLAYER";
   if(!game)return alert("Select game");
 
   document.getElementById("menu").style.display="none";
@@ -236,9 +150,9 @@ function startGame(){
 
   clearInterval(loop);
 
-  if(game==="snake") snakeStart();
-  if(game==="runner") runnerStart();
-  if(game==="pong") pongStart();
+  if(game==="snake") snake();
+  if(game==="runner") runner();
+  if(game==="pong") pong();
 }
 
 function home(){
@@ -247,18 +161,164 @@ function home(){
   document.getElementById("menu").style.display="block";
 }
 
-/* GRID */
+/* ================= GRID ================= */
 function grid(){
   ctx.strokeStyle="rgba(255,255,255,0.05)";
   for(let i=0;i<600;i+=20){
-    ctx.beginPath();ctx.moveTo(i,0);ctx.lineTo(i,400);ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(i,0);
+    ctx.lineTo(i,400);
+    ctx.stroke();
   }
 }
 
-/* ---------- GAME OVER ---------- */
-function gameOver(){
+/* ================= SNAKE ================= */
+let s,dx,dy,f;
+
+function snake(){
+  s=[{x:200,y:200}];
+  dx=20;dy=0;
+  f=food();
+  score=0;
+
+  document.onkeydown=e=>{
+    let k=e.key.toLowerCase();
+
+    if((k==="w"||k==="arrowup")&&dy===0){dx=0;dy=-20;}
+    if((k==="s"||k==="arrowdown")&&dy===0){dx=0;dy=20;}
+    if((k==="a"||k==="arrowleft")&&dx===0){dx=-20;dy=0;}
+    if((k==="d"||k==="arrowright")&&dx===0){dx=20;dy=0;}
+  };
+
+  loop=setInterval(drawSnake,90);
+}
+
+function food(){
+  return {x:Math.floor(Math.random()*30)*20,y:Math.floor(Math.random()*20)*20};
+}
+
+function drawSnake(){
+  ctx.clearRect(0,0,600,400);
+  grid();
+
+  let h={x:s[0].x+dx,y:s[0].y+dy};
+
+  if(h.x<0||h.y<0||h.x>=600||h.y>=400) return over();
+
+  s.unshift(h);
+
+  if(h.x===f.x&&h.y===f.y){
+    score++;
+    f=food();
+  }else s.pop();
+
+  ctx.fillStyle="#00ffff";
+  s.forEach(p=>ctx.fillRect(p.x,p.y,20,20));
+
+  ctx.fillStyle="red";
+  ctx.fillRect(f.x,f.y,20,20);
+
+  update();
+}
+
+/* ================= RUNNER ================= */
+let p,o,g;
+
+function runner(){
+  p={x:50,y:300,vy:0};
+  o=[];g=1;score=0;
+
+  document.onkeydown=e=>{
+    if((e.code==="Space"||e.key==="ArrowUp")&&p.y===300)p.vy=-15;
+  };
+
+  loop=setInterval(drawRunner,30);
+}
+
+function drawRunner(){
+  ctx.clearRect(0,0,600,400);
+  grid();
+
+  p.vy+=g;
+  p.y+=p.vy;
+  if(p.y>300)p.y=300;
+
+  if(Math.random()<0.02)o.push({x:600,y:320});
+
+  o.forEach(x=>x.x-=6);
+  o=o.filter(x=>x.x>-20);
+
+  for(let x of o){
+    if(x.x<70&&p.y===300) return over();
+  }
+
+  ctx.fillStyle="#00ffcc";
+  ctx.fillRect(p.x,p.y,30,30);
+
+  ctx.fillStyle="red";
+  o.forEach(x=>ctx.fillRect(x.x,x.y,20,20));
+
+  score++;
+  update();
+}
+
+/* ================= PONG ================= */
+let pad,ball,hold=false;
+
+function pong(){
+  pad={x:260,y:370,w:80,h:10};
+  ball={x:300,y:200,dx:5,dy:-5};
+  score=0;
+
+  c.onmousedown=()=>hold=true;
+  c.onmouseup=()=>hold=false;
+
+  c.onmousemove=e=>{
+    if(!hold)return;
+    let r=c.getBoundingClientRect();
+    pad.x=e.clientX-r.left-pad.w/2;
+    pad.x=Math.max(0,Math.min(600-pad.w,pad.x));
+  };
+
+  loop=setInterval(drawPong,25); // slightly faster ball
+}
+
+function drawPong(){
+  ctx.clearRect(0,0,600,400);
+  grid();
+
+  ball.x+=ball.dx;
+  ball.y+=ball.dy;
+
+  if(ball.x<0||ball.x>600)ball.dx*=-1;
+  if(ball.y<0)ball.dy*=-1;
+
+  if(ball.y>pad.y&&ball.x>pad.x&&ball.x<pad.x+pad.w){
+    ball.dy*=-1;
+    ball.dx*=1.09; // faster bounce
+    score++;
+  }
+
+  if(ball.y>400) return over();
+
+  ctx.fillStyle="#fff";
+  ctx.fillRect(pad.x,pad.y,pad.w,pad.h);
+
+  ctx.beginPath();
+  ctx.arc(ball.x,ball.y,8,0,Math.PI*2);
+  ctx.fill();
+
+  update();
+}
+
+/* ================= COMMON ================= */
+function update(){
+  document.getElementById("score").innerText =
+    `${name} | ${game.toUpperCase()} : ${score}`;
+}
+
+function over(){
   clearInterval(loop);
-  beep(200);
   document.getElementById("overlay").style.display="block";
 }
 </script>
