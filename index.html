@@ -1,196 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>E-GAMES ARCADE</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+
+<style>
+body{
+  margin:0;
+  font-family:'Press Start 2P', cursive;
+  background:#000;
+  color:#00ffee;
+  overflow:hidden;
+  text-align:center;
+}
+
+body::before{
+  content:"";
+  position:fixed;
+  inset:0;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(255,255,255,0.03),
+    rgba(255,255,255,0.03) 1px,
+    transparent 2px,
+    transparent 4px
+  );
+  pointer-events:none;
+}
+
+body::after{
+  content:"";
+  position:fixed;
+  inset:0;
+  background: radial-gradient(circle at 50% 30%, #220044, #000);
+  z-index:-1;
+}
+
+#menu{padding-top:60px;}
+.title{font-size:28px;color:#ff00cc;text-shadow:0 0 10px #ff00cc;}
+
+button{
+  font-family:'Press Start 2P', cursive;
+  padding:10px;
+  margin:5px;
+  border:2px solid #00ffee;
+  background:#111;
+  color:#00ffee;
+  cursor:pointer;
+}
+button:active{transform:scale(0.95);}
+.selected{background:#00ffee;color:#000}
+
+input{
+  padding:10px;
+  background:#111;
+  color:#00ffee;
+  border:none;
+}
+
+#arcade{
+  display:none;
+  height:100vh;
+  align-items:center;
+  justify-content:center;
+}
+
+.machine{
+  border:6px solid #333;
+  padding:10px;
+  background:#050505;
+  box-shadow:0 0 30px #ff00cc;
+}
+
+canvas{
+  width:90vw;
+  max-width:600px;
+  background:#000;
+}
+
+#score{
+  position:absolute;
+  top:10px;
+  left:10px;
+  font-size:10px;
+}
+
+#overlay{
+  position:absolute;
+  top:50%;
+  left:50%;
+  transform:translate(-50%,-50%);
+  display:none;
+}
+</style>
+</head>
+
+<body>
+
+<div id="menu">
+  <div class="title">E-GAMES ARCADE</div>
+
+  <button onclick="select('snake',this)">SNAKE</button>
+  <button onclick="select('runner',this)">RUNNER</button>
+  <button onclick="select('pong',this)">PONG</button><br><br>
+
+  <input id="name" placeholder="NAME"><br><br>
+  <button onclick="start()">START</button>
+</div>
+
+<div id="score"></div>
+
+<div id="overlay">
+  <h3>GAME OVER</h3>
+  <button onclick="start()">RESTART</button>
+</div>
+
+<div id="arcade">
+  <div class="machine">
+    <canvas id="c" width="600" height="400"></canvas>
+  </div>
+</div>
+
 <script>
-/* ═══════════════════════════════════════
-   CORE STATE
-═══════════════════════════════════════ */
-const cv = document.getElementById('c');
-const ctx = cv.getContext('2d');
-const W = 620, H = 400;
+const c=document.getElementById("c");
+const ctx=c.getContext("2d");
 
-let currentGame = null;
-let loop = null;
+let game,loop,name="",score=0;
 
-let score = 0;
-let lives = 3;
-let level = 1;
-
-let paused = false;
-let playerName = "PLAYER";
-
-let particles = [];
-
-/* ═══════════════════════════════════════
-   HIGH SCORE
-═══════════════════════════════════════ */
-const HS_KEY = "egames_hs";
-
-function loadHS(){
-  try { return JSON.parse(localStorage.getItem(HS_KEY)) || {}; }
-  catch(e){ return {}; }
+/* MENU */
+function select(g,el){
+  game=g;
+  document.querySelectorAll("button").forEach(b=>b.classList.remove("selected"));
+  el.classList.add("selected");
 }
 
-function saveHS(game, name, sc){
-  let hs = loadHS();
-  if(!hs[game]) hs[game] = [];
-  hs[game].push({name, score:sc});
-  hs[game].sort((a,b)=>b.score-a.score);
-  hs[game] = hs[game].slice(0,5);
-  localStorage.setItem(HS_KEY, JSON.stringify(hs));
+function start(){
+  name=document.getElementById("name").value||"PLAYER";
+  if(!game)return;
+
+  document.getElementById("menu").style.display="none";
+  document.getElementById("arcade").style.display="flex";
+  document.getElementById("overlay").style.display="none";
+
+  clearInterval(loop);
+
+  if(game==="runner") runner();
+  if(game==="snake") snake();
+  if(game==="pong") pong();
 }
 
-/* ═══════════════════════════════════════
-   MENU FIX (IMPORTANT)
-═══════════════════════════════════════ */
-function selectGame(g, el){
-  currentGame = g;
+/* ================= FOREST ================= */
 
-  document.querySelectorAll('.game-btn')
-    .forEach(b => b.classList.remove('active'));
+let bgFar=[],bgMid=[],bgNear=[];
 
-  el.classList.add('active');
+function initForest(){
+  bgFar=[]; bgMid=[]; bgNear=[];   // FIXED RESET BUG
 
-  const hints = {
-    snake:'WASD / ARROWS TO STEER',
-    runner:'SPACE / UP TO JUMP',
-    pong:'MOUSE TO MOVE PADDLE'
+  for(let i=0;i<10;i++)
+    bgFar.push({x:i*80,y:200});
+
+  for(let i=0;i<8;i++)
+    bgMid.push({x:i*100,y:240});
+
+  for(let i=0;i<6;i++)
+    bgNear.push({x:i*120,y:280});
+}
+
+function drawTree(x,y,size,color){
+  ctx.fillStyle="#3b2a1a";
+  ctx.fillRect(x,y,size/4,size);
+
+  ctx.fillStyle=color;
+  ctx.beginPath();
+  ctx.arc(x+size/8,y,size/2,0,Math.PI*2);
+  ctx.fill();
+}
+
+function drawForest(){
+  let g=ctx.createLinearGradient(0,0,0,400);
+  g.addColorStop(0,"#1a0033");
+  g.addColorStop(1,"#000");
+  ctx.fillStyle=g;
+  ctx.fillRect(0,0,600,400);
+
+  bgFar.forEach(t=>{
+    t.x-=1;
+    if(t.x<-50)t.x=650;
+    drawTree(t.x,t.y,20,"#0a3d0a");
+  });
+
+  bgMid.forEach(t=>{
+    t.x-=2;
+    if(t.x<-50)t.x=650;
+    drawTree(t.x,t.y,30,"#0f5a0f");
+  });
+
+  bgNear.forEach(t=>{
+    t.x-=4;
+    if(t.x<-50)t.x=650;
+    drawTree(t.x,t.y,40,"#16a016");
+  });
+
+  ctx.fillStyle="#003300";
+  ctx.fillRect(0,340,600,60);
+}
+
+/* ================= RUNNER (FIXED) ================= */
+
+let p,o,g;
+
+function runner(){
+  initForest();
+
+  p={x:50,y:300,vy:0};
+  o=[];
+  g=1;
+  score=0;
+
+  document.onkeydown=e=>{
+    if((e.code==="Space"||e.key==="ArrowUp")&&p.y===300){
+      p.vy=-15;
+    }
   };
 
-  document.getElementById('hintText').textContent = hints[g] || '';
-  document.getElementById('startBtn').textContent = "PLAY " + g.toUpperCase() + " ▶";
+  loop=setInterval(drawRunner,30);
 }
 
-function startGame(){
-  if(!currentGame){
-    alert("SELECT A GAME FIRST");
-    return;
+function drawRunner(){
+  ctx.clearRect(0,0,600,400);
+
+  drawForest();
+
+  p.vy+=g;
+  p.y+=p.vy;
+  if(p.y>300)p.y=300;
+
+  if(Math.random()<0.03){
+    o.push({x:600,y:320,w:25,h:20});
   }
 
-  playerName = (document.getElementById("playerName").value || "PLAYER")
-    .toUpperCase()
-    .slice(0,10);
+  o.forEach(r=>r.x-=7);
+  o=o.filter(r=>r.x>-50);
 
-  document.getElementById("menu").style.display = "none";
-  document.getElementById("gameScreen").style.display = "flex";
-  document.getElementById("overlay").classList.remove("visible");
-
-  document.getElementById("hudName").textContent = playerName;
-
-  restartGame();
-}
-
-function restartGame(){
-  clearInterval(loop);
-  loop = null;
-
-  score = 0;
-  lives = 3;
-  level = 1;
-  paused = false;
-  particles = [];
-
-  updateHUD();
-
-  if(currentGame === "snake") initSnake();
-  if(currentGame === "runner") initRunner();
-  if(currentGame === "pong") initPong();
-}
-
-function goMenu(){
-  clearInterval(loop);
-  loop = null;
-
-  document.getElementById("gameScreen").style.display = "none";
-  document.getElementById("menu").style.display = "flex";
-}
-
-/* ═══════════════════════════════════════
-   PAUSE
-═══════════════════════════════════════ */
-document.addEventListener("keydown", e=>{
-  if(e.key === "Escape") goMenu();
-
-  if(e.key.toLowerCase() === "p"){
-    paused = !paused;
-    document.getElementById("pauseMsg").style.display =
-      paused ? "block" : "none";
+  for(let r of o){
+    if(p.x<r.x+r.w && p.x+30>r.x && p.y<r.y+r.h && p.y+30>r.y){
+      return over();
+    }
   }
-});
 
-/* ═══════════════════════════════════════
-   HUD
-═══════════════════════════════════════ */
-function updateHUD(){
-  document.getElementById("hudScore").textContent = score;
-  document.getElementById("hudLevel").textContent = level;
-  document.getElementById("hudLives").textContent =
-    "♥ ".repeat(lives).trim();
+  ctx.fillStyle="#00ffff";
+  ctx.fillRect(p.x,p.y,30,30);
+
+  ctx.fillStyle="#888";
+  o.forEach(r=>ctx.fillRect(r.x,r.y,r.w,r.h));
+
+  score++;
+  update();
 }
 
-/* ═══════════════════════════════════════
-   PARTICLES
-═══════════════════════════════════════ */
-function spawnParticles(x,y,color,n=6){
-  for(let i=0;i<n;i++){
-    const a = Math.random()*Math.PI*2;
-    const s = 1 + Math.random()*3;
-    particles.push({
-      x,y,
-      vx:Math.cos(a)*s,
-      vy:Math.sin(a)*s,
-      life:1,
-      color
-    });
+/* ================= SNAKE ================= */
+
+let s,dx,dy,f;
+
+function snake(){
+  s=[{x:200,y:200}];
+  dx=20;dy=0;
+  f=randomFood();
+  score=0;
+
+  document.onkeydown=e=>{
+    let k=e.key.toLowerCase();
+    if((k==="w"||k==="arrowup")&&dy===0){dx=0;dy=-20;}
+    if((k==="s"||k==="arrowdown")&&dy===0){dx=0;dy=20;}
+    if((k==="a"||k==="arrowleft")&&dx===0){dx=-20;dy=0;}
+    if((k==="d"||k==="arrowright")&&dx===0){dx=20;dy=0;}
+  };
+
+  loop=setInterval(drawSnake,110);
+}
+
+function randomFood(){
+  return {
+    x:Math.floor(Math.random()*30)*20,
+    y:Math.floor(Math.random()*20)*20
+  };
+}
+
+function drawSnake(){
+  ctx.clearRect(0,0,600,400);
+
+  let h={x:s[0].x+dx,y:s[0].y+dy};
+
+  if(h.x<0||h.y<0||h.x>=600||h.y>=400)return over();
+
+  s.unshift(h);
+
+  if(h.x===f.x&&h.y===f.y){
+    score++;
+    f=randomFood();
+  }else s.pop();
+
+  ctx.fillStyle="#00ff88";
+  s.forEach(p=>ctx.fillRect(p.x,p.y,20,20));
+
+  ctx.fillStyle="red";
+  ctx.fillRect(f.x,f.y,20,20);
+
+  update();
+}
+
+/* ================= PONG ================= */
+
+let pad,ball,hold=false;
+
+function pong(){
+  pad={x:260,y:370,w:80,h:10};
+  ball={x:300,y:200,dx:5,dy:-5};
+  score=0;
+
+  c.onmousedown=()=>hold=true;
+  c.onmouseup=()=>hold=false;
+
+  c.onmousemove=e=>{
+    if(!hold)return;
+    let r=c.getBoundingClientRect();
+    pad.x=e.clientX-r.left-pad.w/2;
+  };
+
+  loop=setInterval(drawPong,25);
+}
+
+function drawPong(){
+  ctx.clearRect(0,0,600,400);
+
+  ball.x+=ball.dx;
+  ball.y+=ball.dy;
+
+  if(ball.x<0||ball.x>600)ball.dx*=-1;
+  if(ball.y<0)ball.dy*=-1;
+
+  if(ball.y>pad.y&&ball.x>pad.x&&ball.x<pad.x+pad.w){
+    ball.dy*=-1;
+    ball.dx*=1.1;
+    score++;
   }
+
+  if(ball.y>400)return over();
+
+  ctx.fillStyle="#fff";
+  ctx.fillRect(pad.x,pad.y,pad.w,pad.h);
+
+  ctx.beginPath();
+  ctx.arc(ball.x,ball.y,8,0,Math.PI*2);
+  ctx.fill();
+
+  update();
 }
 
-function drawParticles(){
-  particles = particles.filter(p=>{
-    p.x += p.vx;
-    p.y += p.vy;
-    p.life -= 0.03;
+/* ================= COMMON ================= */
 
-    ctx.globalAlpha = p.life;
-    ctx.fillStyle = p.color;
-    ctx.fillRect(p.x,p.y,3,3);
-    ctx.globalAlpha = 1;
-
-    return p.life > 0;
-  });
+function update(){
+  document.getElementById("score").innerText=
+    `${name} | ${game.toUpperCase()} : ${score}`;
 }
 
-/* ═══════════════════════════════════════
-   GAME OVER
-═══════════════════════════════════════ */
-function gameOver(){
+function over(){
   clearInterval(loop);
-  loop = null;
-
-  saveHS(currentGame, playerName, score);
-
-  document.getElementById("overlay").classList.add("visible");
-  document.getElementById("overScore").textContent = "SCORE: " + score;
-
-  spawnParticles(W/2,H/2,"#ff00cc",20);
+  document.getElementById("overlay").style.display="block";
 }
-
-/* ═══════════════════════════════════════
-   PLACEHOLDERS (YOUR EXISTING GAMES)
-   DO NOT DELETE YOUR GAME CODE BELOW
-═══════════════════════════════════════ */
-
-/*
-IMPORTANT:
-Your existing functions must remain below:
-- initSnake()
-- initRunner()
-- initPong()
-- snakeTick / runnerTick / pongTick
-*/
-
-/* safety loop hook (optional) */
-function gameLoop(){
-  if(!paused) drawParticles();
-  requestAnimationFrame(gameLoop);
-}
-gameLoop();
-
 </script>
+
+</body>
+</html>
