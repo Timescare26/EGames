@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Arcade X Final</title>
+<title>Arcade X Pro</title>
 
 <style>
 body{
@@ -24,7 +24,6 @@ body{
   100%{background-position:0%}
 }
 
-/* MENU */
 .neon{
   font-size:60px;
   text-shadow:0 0 20px #ff00cc;
@@ -38,8 +37,7 @@ button{
   cursor:pointer;
   transition:0.2s;
 }
-button:active{transform:scale(0.92)}
-
+button:active{transform:scale(0.9)}
 .selected{background:#ff00aa;color:white}
 
 input{
@@ -49,7 +47,7 @@ input{
   outline:none;
 }
 
-/* ARCADE */
+/* ARCADE SCREEN */
 #arcade{
   display:none;
   height:100vh;
@@ -212,10 +210,6 @@ function drawSnake(){
 
   if(h.x<0||h.y<0||h.x>=600||h.y>=400) return gameOver();
 
-  for(let i=1;i<snake.length;i++){
-    if(h.x===snake[i].x&&h.y===snake[i].y) return gameOver();
-  }
-
   snake.unshift(h);
 
   if(h.x===food.x&&h.y===food.y){
@@ -284,12 +278,12 @@ function drawRunner(){
 }
 
 /* ---------------- PONG ---------------- */
-let paddle,ball;
+let paddle,ball,mouseDown=false;
 
 function pongStart(){
   paddle={x:260,y:370,w:80,h:10};
 
-  /* 🔥 FASTER START BALL */
+  // slightly faster start
   ball={x:300,y:200,dx:5,dy:-5};
 
   score=0;
@@ -298,6 +292,26 @@ function pongStart(){
     if(e.key==="ArrowLeft")paddle.x-=25;
     if(e.key==="ArrowRight")paddle.x+=25;
   };
+
+  /* 🖱 MOUSE HOLD CONTROL */
+  c.addEventListener("mousedown",e=>{
+    if(e.button===0) mouseDown=true;
+  });
+
+  c.addEventListener("mouseup",()=>mouseDown=false);
+  c.addEventListener("mouseleave",()=>mouseDown=false);
+
+  c.addEventListener("mousemove",e=>{
+    if(!mouseDown) return;
+
+    let rect=c.getBoundingClientRect();
+    let x=e.clientX-rect.left;
+
+    paddle.x=x-paddle.w/2;
+
+    if(paddle.x<0)paddle.x=0;
+    if(paddle.x>600-paddle.w)paddle.x=600-paddle.w;
+  });
 
   loop=setInterval(drawPong,30);
 }
@@ -312,16 +326,15 @@ function drawPong(){
   if(ball.x<0||ball.x>600) ball.dx*=-1;
   if(ball.y<0) ball.dy*=-1;
 
-  /* paddle bounce */
   if(ball.y>paddle.y &&
      ball.x>paddle.x &&
      ball.x<paddle.x+paddle.w){
 
     ball.dy*=-1;
 
-    /* 🔥 SPEED INCREASE ON HIT */
-    ball.dx *= 1.08;
-    ball.dy *= 1.08;
+    // speed increase
+    ball.dx*=1.08;
+    ball.dy*=1.08;
 
     score++;
     beep(700);
@@ -345,6 +358,7 @@ function updateScore(){
     high[game]=score;
     localStorage.setItem(game,score);
   }
+
   document.getElementById("score").innerHTML=
     `${name} | ${game.toUpperCase()} : ${score} | High: ${high[game]}`;
 }
@@ -358,3 +372,4 @@ function gameOver(){
 
 </body>
 </html>
+
