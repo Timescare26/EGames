@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Arcade X Pro</title>
+<title>Arcade X Final</title>
 
 <style>
 body{
@@ -12,30 +12,33 @@ body{
   font-family:Arial;
   color:white;
   text-align:center;
+  overflow:hidden;
   background: linear-gradient(270deg,#1b0033,#5a00a8,#0a001a);
   background-size:600% 600%;
   animation:bg 12s infinite;
 }
+
 @keyframes bg{
   0%{background-position:0%}
   50%{background-position:100%}
   100%{background-position:0%}
 }
 
+/* MENU */
 .neon{
   font-size:60px;
   text-shadow:0 0 20px #ff00cc;
 }
 
 button{
-  padding:15px 25px;
-  margin:10px;
+  padding:14px 22px;
+  margin:8px;
   border:none;
-  border-radius:15px;
+  border-radius:12px;
   cursor:pointer;
   transition:0.2s;
 }
-button:active{transform:scale(0.9)}
+button:active{transform:scale(0.92)}
 
 .selected{background:#ff00aa;color:white}
 
@@ -43,6 +46,7 @@ input{
   padding:10px;
   border-radius:10px;
   border:none;
+  outline:none;
 }
 
 /* ARCADE */
@@ -55,10 +59,10 @@ input{
 
 .machine{
   background:#111;
-  padding:20px;
-  border-radius:20px;
+  padding:18px;
+  border-radius:18px;
   border:8px solid #444;
-  box-shadow:0 0 40px #ff00cc;
+  box-shadow:0 0 35px #ff00cc;
 }
 
 canvas{
@@ -68,7 +72,13 @@ canvas{
   border-radius:10px;
 }
 
-#score{position:absolute;top:10px;left:10px}
+#score{
+  position:absolute;
+  top:10px;
+  left:10px;
+  font-size:14px;
+}
+
 #overlay{
   position:absolute;
   top:50%;
@@ -111,12 +121,13 @@ const c=document.getElementById("c");
 const ctx=c.getContext("2d");
 
 let game=null,loop,name="";
-let score=0,paused=false;
+let score=0;
 
-let highs={
-  snake:localStorage.getItem("snakeHigh")||0,
-  runner:localStorage.getItem("runnerHigh")||0,
-  pong:localStorage.getItem("pongHigh")||0
+/* HIGH SCORES */
+let high={
+  snake:localStorage.getItem("snake")||0,
+  runner:localStorage.getItem("runner")||0,
+  pong:localStorage.getItem("pong")||0
 };
 
 /* SOUND */
@@ -126,7 +137,7 @@ function beep(f){
   o.frequency.value=f;
   o.connect(a.destination);
   o.start();
-  o.stop(a.currentTime+0.1);
+  o.stop(a.currentTime+0.08);
 }
 
 /* MENU */
@@ -145,7 +156,6 @@ function startGame(){
   document.getElementById("arcade").style.display="flex";
 
   clearInterval(loop);
-  paused=false;
 
   if(game==="snake") snakeStart();
   if(game==="runner") runnerStart();
@@ -162,18 +172,18 @@ function home(){
 /* GRID */
 function grid(){
   ctx.strokeStyle="rgba(255,255,255,0.05)";
-  for(let x=0;x<600;x+=20){
-    ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,400);ctx.stroke();
+  for(let i=0;i<600;i+=20){
+    ctx.beginPath();ctx.moveTo(i,0);ctx.lineTo(i,400);ctx.stroke();
   }
 }
 
-/* ---------- SNAKE ---------- */
+/* ---------------- SNAKE ---------------- */
 let snake,food,dx,dy;
 
 function snakeStart(){
   snake=[{x:200,y:200}];
   dx=20;dy=0;
-  food=spawnFood();
+  food=randFood();
   score=0;
 
   document.onkeydown=e=>{
@@ -187,7 +197,7 @@ function snakeStart(){
   loop=setInterval(drawSnake,100);
 }
 
-function spawnFood(){
+function randFood(){
   return {
     x:Math.floor(Math.random()*30)*20,
     y:Math.floor(Math.random()*20)*20
@@ -198,17 +208,20 @@ function drawSnake(){
   ctx.clearRect(0,0,600,400);
   grid();
 
-  let head={x:snake[0].x+dx,y:snake[0].y+dy};
+  let h={x:snake[0].x+dx,y:snake[0].y+dy};
 
-  if(head.x<0||head.y<0||head.x>=600||head.y>=400) return gameOver();
+  if(h.x<0||h.y<0||h.x>=600||h.y>=400) return gameOver();
 
-  snake.unshift(head);
+  for(let i=1;i<snake.length;i++){
+    if(h.x===snake[i].x&&h.y===snake[i].y) return gameOver();
+  }
 
-  if(head.x===food.x&&head.y===food.y){
-    score++;
-    beep(600);
-    food=spawnFood();
-  } else snake.pop();
+  snake.unshift(h);
+
+  if(h.x===food.x&&h.y===food.y){
+    score++; beep(600);
+    food=randFood();
+  }else snake.pop();
 
   ctx.fillStyle="#00ffcc";
   snake.forEach(s=>ctx.fillRect(s.x,s.y,20,20));
@@ -219,17 +232,21 @@ function drawSnake(){
   updateScore();
 }
 
-/* ---------- RUNNER ---------- */
-let player,obs,grav;
+/* ---------------- RUNNER ---------------- */
+let player,obs,grav,spd;
 
 function runnerStart(){
   player={x:50,y:300,w:30,h:30,vy:0};
   obs=[];
   grav=1;
+  spd=5;
   score=0;
 
   document.onkeydown=e=>{
-    if(e.code==="Space"&&player.y===300)player.vy=-15;
+    if((e.code==="Space"||e.key==="ArrowUp")&&player.y===300){
+      player.vy=-15;
+      beep(400);
+    }
   };
 
   loop=setInterval(drawRunner,30);
@@ -244,16 +261,19 @@ function drawRunner(){
   if(player.y>300)player.y=300;
 
   if(Math.random()<0.02) obs.push({x:600,y:320,w:20,h:20});
-  obs.forEach(o=>o.x-=5);
+
+  spd+=0.002;
+  obs.forEach(o=>o.x-=spd);
+  obs=obs.filter(o=>o.x>-20);
 
   for(let o of obs){
-    if(player.x<o.x+o.w && player.x+player.w>o.x &&
-       player.y<o.y+o.h && player.y+player.h>o.y){
+    if(player.x<o.x+o.w&&player.x+player.w>o.x&&
+       player.y<o.y+o.h&&player.y+player.h>o.y){
       return gameOver();
     }
   }
 
-  ctx.fillStyle="white";
+  ctx.fillStyle="#00ccff";
   ctx.fillRect(player.x,player.y,30,30);
 
   ctx.fillStyle="red";
@@ -263,23 +283,21 @@ function drawRunner(){
   updateScore();
 }
 
-/* ---------- PONG ---------- */
+/* ---------------- PONG ---------------- */
 let paddle,ball;
 
 function pongStart(){
   paddle={x:260,y:370,w:80,h:10};
-  ball={x:300,y:200,dx:4,dy:-4};
+
+  /* 🔥 FASTER START BALL */
+  ball={x:300,y:200,dx:5,dy:-5};
+
   score=0;
 
   document.onkeydown=e=>{
-    if(e.key==="ArrowLeft")paddle.x-=20;
-    if(e.key==="ArrowRight")paddle.x+=20;
+    if(e.key==="ArrowLeft")paddle.x-=25;
+    if(e.key==="ArrowRight")paddle.x+=25;
   };
-
-  c.addEventListener("mousemove",(e)=>{
-    let rect=c.getBoundingClientRect();
-    paddle.x=e.clientX-rect.left-40;
-  });
 
   loop=setInterval(drawPong,30);
 }
@@ -291,18 +309,25 @@ function drawPong(){
   ball.x+=ball.dx;
   ball.y+=ball.dy;
 
-  if(ball.x<0||ball.x>600)ball.dx*=-1;
-  if(ball.y<0)ball.dy*=-1;
+  if(ball.x<0||ball.x>600) ball.dx*=-1;
+  if(ball.y<0) ball.dy*=-1;
 
-  if(ball.y>400) return gameOver();
-
+  /* paddle bounce */
   if(ball.y>paddle.y &&
      ball.x>paddle.x &&
      ball.x<paddle.x+paddle.w){
+
     ball.dy*=-1;
+
+    /* 🔥 SPEED INCREASE ON HIT */
+    ball.dx *= 1.08;
+    ball.dy *= 1.08;
+
     score++;
     beep(700);
   }
+
+  if(ball.y>400) return gameOver();
 
   ctx.fillStyle="white";
   ctx.fillRect(paddle.x,paddle.y,paddle.w,paddle.h);
@@ -314,14 +339,14 @@ function drawPong(){
   updateScore();
 }
 
-/* ---------- COMMON ---------- */
+/* ---------------- COMMON ---------------- */
 function updateScore(){
-  if(score>highs[game]){
-    highs[game]=score;
-    localStorage.setItem(game+"High",score);
+  if(score>high[game]){
+    high[game]=score;
+    localStorage.setItem(game,score);
   }
   document.getElementById("score").innerHTML=
-    `${name} | ${game}: ${score} | High: ${highs[game]}`;
+    `${name} | ${game.toUpperCase()} : ${score} | High: ${high[game]}`;
 }
 
 function gameOver(){
