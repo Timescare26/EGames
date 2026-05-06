@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>E-GAMES ARCADE</title>
+<title>E-GAMES RUNNER</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 
@@ -31,19 +31,18 @@ body::before{
   pointer-events:none;
 }
 
-body::after{
-  content:"";
-  position:fixed;
-  inset:0;
-  background: radial-gradient(circle at 50% 30%, #220044, #000);
-  z-index:-1;
+#menu{
+  padding-top:60px;
 }
 
-#menu{padding-top:60px;}
-.title{font-size:26px;color:#ff00cc;text-shadow:0 0 10px #ff00cc;}
+.title{
+  font-size:22px;
+  color:#ff00cc;
+  text-shadow:0 0 10px #ff00cc;
+}
 
 button{
-  font-family:'Press Start 2P', cursive;
+  font-family:'Press Start 2P';
   padding:10px;
   margin:5px;
   border:2px solid #00ffee;
@@ -51,34 +50,19 @@ button{
   color:#00ffee;
   cursor:pointer;
 }
-button:active{transform:scale(0.95);}
-.selected{background:#00ffee;color:#000}
 
-input{
-  padding:10px;
-  background:#111;
-  color:#00ffee;
-  border:none;
-}
+button:active{transform:scale(0.95)}
 
-#arcade{
+#game{
   display:none;
-  height:100vh;
-  align-items:center;
-  justify-content:center;
-}
-
-.machine{
-  border:6px solid #333;
-  padding:10px;
-  background:#050505;
-  box-shadow:0 0 30px #ff00cc;
 }
 
 canvas{
-  width:90vw;
-  max-width:600px;
   background:#000;
+  width:90vw;
+  max-width:700px;
+  border:3px solid #222;
+  margin-top:20px;
 }
 
 #score{
@@ -87,237 +71,160 @@ canvas{
   left:10px;
   font-size:10px;
 }
-
-#overlay{
-  position:absolute;
-  top:50%;
-  left:50%;
-  transform:translate(-50%,-50%);
-  display:none;
-}
 </style>
 </head>
 
 <body>
 
 <div id="menu">
-  <div class="title">E-GAMES ARCADE</div>
-
-  <button onclick="select('runner',this)">RUNNER</button>
-  <button onclick="select('snake',this)">SNAKE</button>
-  <button onclick="select('pong',this)">PONG</button><br><br>
-
-  <input id="name" placeholder="NAME"><br><br>
-  <button onclick="start()">START</button>
+  <div class="title">SIDE RUNNER</div>
+  <button onclick="start()">START GAME</button>
 </div>
 
 <div id="score"></div>
 
-<div id="overlay">
-  <h3>GAME OVER</h3>
-  <button onclick="start()">RESTART</button>
-</div>
-
-<div id="arcade">
-  <div class="machine">
-    <canvas id="c" width="600" height="400"></canvas>
-  </div>
+<div id="game">
+  <canvas id="c" width="700" height="400"></canvas>
 </div>
 
 <script>
 const c=document.getElementById("c");
 const ctx=c.getContext("2d");
 
-let game,loop,name="",score=0;
+let player,obstacles,frame,score,groundY=320,loop;
 
-/* ================= MENU ================= */
-function select(g,el){
-  game=g;
-  document.querySelectorAll("button").forEach(b=>b.classList.remove("selected"));
-  el.classList.add("selected");
-}
-
+/* START */
 function start(){
-  name=document.getElementById("name").value||"PLAYER";
-  if(!game)return;
-
   document.getElementById("menu").style.display="none";
-  document.getElementById("arcade").style.display="flex";
-  document.getElementById("overlay").style.display="none";
+  document.getElementById("game").style.display="block";
 
-  clearInterval(loop);
+  player={x:120,y:groundY,w:30,h:40,vy:0,jump:false};
+  obstacles=[];
+  frame=0;
+  score=0;
 
-  if(game==="runner") runner();
+  document.onkeydown=e=>{
+    if(e.code==="Space" && !player.jump){
+      player.vy=-12;
+      player.jump=true;
+    }
+  };
+
+  loop=setInterval(update,16);
 }
 
-/* ================= FOREST ================= */
-
-let bgFar=[],bgMid=[],bgNear=[];
-
-function initForest(){
-  bgFar=[]; bgMid=[]; bgNear=[];
-
-  for(let i=0;i<12;i++)
-    bgFar.push({x:i*60,y:190+Math.random()*20});
-
-  for(let i=0;i<10;i++)
-    bgMid.push({x:i*80,y:230+Math.random()*20});
-
-  for(let i=0;i<8;i++)
-    bgNear.push({x:i*100,y:270+Math.random()*20});
+/* BACKGROUND */
+let trees=[];
+for(let i=0;i<12;i++){
+  trees.push({x:i*70,y:260+Math.random()*40,size:30+Math.random()*20});
 }
 
-function drawTree(x,y,size,color){
-  ctx.fillStyle="#2b1b10";
-  ctx.fillRect(x+size*0.35,y,size*0.3,size);
+/* DRAW TREE */
+function drawTree(x,y,s){
+  ctx.fillStyle="#2a1b10";
+  ctx.fillRect(x+10,y,8,s);
 
-  ctx.fillStyle=color;
+  ctx.fillStyle="#0f5";
   ctx.beginPath();
-  ctx.arc(x+size/2,y,size*0.55,0,Math.PI*2);
+  ctx.arc(x,y,15,0,Math.PI*2);
   ctx.fill();
 
-  ctx.fillStyle=shade(color,-25);
   ctx.beginPath();
-  ctx.arc(x+size*0.35,y-8,size*0.45,0,Math.PI*2);
+  ctx.arc(x+10,y-10,18,0,Math.PI*2);
   ctx.fill();
 
-  ctx.fillStyle=shade(color,20);
   ctx.beginPath();
-  ctx.arc(x+size*0.6,y-12,size*0.4,0,Math.PI*2);
+  ctx.arc(x+20,y,15,0,Math.PI*2);
   ctx.fill();
 }
 
-function shade(c,amt){
-  let col=c.replace("#","");
-  let num=parseInt(col,16);
-  let r=(num>>16)+amt;
-  let g=((num>>8)&255)+amt;
-  let b=(num&255)+amt;
-  return `rgb(${Math.max(0,r)},${Math.max(0,g)},${Math.max(0,b)})`;
-}
+/* UPDATE LOOP */
+function update(){
+  frame++;
+  ctx.clearRect(0,0,700,400);
 
-function drawForest(){
+  /* SKY */
   let g=ctx.createLinearGradient(0,0,0,400);
   g.addColorStop(0,"#120020");
   g.addColorStop(1,"#000");
   ctx.fillStyle=g;
-  ctx.fillRect(0,0,600,400);
+  ctx.fillRect(0,0,700,400);
 
-  bgFar.forEach(t=>{
-    t.x-=1;
-    if(t.x<-60)t.x=620;
-    drawTree(t.x,t.y,18,"#0a3d0a");
-  });
-
-  bgMid.forEach(t=>{
+  /* PARALLAX TREES */
+  trees.forEach(t=>{
     t.x-=2;
-    if(t.x<-60)t.x=620;
-    drawTree(t.x,t.y,26,"#0f5a0f");
+    if(t.x<-50)t.x=750;
+    drawTree(t.x,t.y,t.size);
   });
 
-  bgNear.forEach(t=>{
-    t.x-=4;
-    if(t.x<-60)t.x=620;
-    drawTree(t.x,t.y,34,"#16a016");
-  });
-
+  /* GROUND */
   ctx.fillStyle="#003300";
-  ctx.fillRect(0,340,600,60);
-}
+  ctx.fillRect(0,groundY,700,80);
 
-/* ================= RUNNER ================= */
-
-let p,o,g;
-
-function runner(){
-  initForest();
-
-  p={x:60,y:300,vy:0};
-  o=[];
-  g=1;
-  score=0;
-
-  document.onkeydown=e=>{
-    if((e.code==="Space"||e.key==="ArrowUp")&&p.y===300){
-      p.vy=-15;
-    }
-  };
-
-  loop=setInterval(drawRunner,30);
-}
-
-let frame=0;
-
-function drawRunner(){
-  frame++;
-  ctx.clearRect(0,0,600,400);
-
-  drawForest();
-
-  /* physics */
-  p.vy+=g;
-  p.y+=p.vy;
-  if(p.y>300)p.y=300;
-
-  /* obstacles */
-  if(Math.random()<0.03){
-    o.push({x:600,y:320,w:25,h:20});
+  ctx.fillStyle="#005500";
+  for(let i=0;i<700;i+=20){
+    ctx.fillRect((i-frame*5)%700,groundY+10,10,5);
   }
 
-  o.forEach(r=>r.x-=7);
-  o=o.filter(r=>r.x>-60);
+  /* GRAVITY */
+  player.vy+=0.6;
+  player.y+=player.vy;
 
-  for(let r of o){
-    if(p.x<r.x+r.w && p.x+30>r.x && p.y<r.y+r.h && p.y+30>r.y){
-      return over();
+  if(player.y>=groundY-player.h){
+    player.y=groundY-player.h;
+    player.vy=0;
+    player.jump=false;
+  }
+
+  /* OBSTACLES */
+  if(Math.random()<0.02){
+    obstacles.push({x:700,y:groundY-20,w:20,h:20});
+  }
+
+  obstacles.forEach(o=>o.x-=6);
+  obstacles=obstacles.filter(o=>o.x>-50);
+
+  /* COLLISION */
+  for(let o of obstacles){
+    if(player.x<o.x+o.w &&
+       player.x+player.w>o.x &&
+       player.y<o.y+o.h &&
+       player.y+player.h>o.y){
+      clearInterval(loop);
+      alert("GAME OVER");
+      location.reload();
     }
   }
 
-  /* ===== PIXEL RUNNER CHARACTER ===== */
-
-  let bob=Math.sin(frame/6)*2;
-  let leg=Math.sin(frame/5)*4;
-
-  // head
-  ctx.fillStyle="#ffd6a5";
-  ctx.fillRect(p.x+10,p.y-12+bob,12,12);
-
-  // body
-  ctx.fillStyle="#00e5d5";
-  ctx.fillRect(p.x+8,p.y+2+bob,16,16);
-
-  // arms
-  ctx.fillStyle="#00c0b0";
-  ctx.fillRect(p.x+2,p.y+6+bob+leg*0.3,5,10);
-  ctx.fillRect(p.x+24,p.y+6+bob-leg*0.3,5,10);
+  /* ===== PLAYER (SIDE RUNNER ANIMATION) ===== */
+  let run = Math.sin(frame/6)*6;
 
   // legs
   ctx.fillStyle="#004c4c";
-  ctx.fillRect(p.x+10,p.y+18+bob+leg,6,12);
-  ctx.fillRect(p.x+18,p.y+18+bob-leg,6,12);
+  ctx.fillRect(player.x+5,player.y+30+run,8,10);
+  ctx.fillRect(player.x+17,player.y+30-run,8,10);
 
-  /* rocks */
-  o.forEach(r=>{
-    ctx.fillStyle="#555";
-    ctx.fillRect(r.x,r.y,r.w,r.h);
-    ctx.fillStyle="#999";
-    ctx.fillRect(r.x+2,r.y+2,r.w-4,r.h-4);
+  // body
+  ctx.fillStyle="#00e5d5";
+  ctx.fillRect(player.x+8,player.y+10,16,20);
+
+  // head
+  ctx.fillStyle="#ffd6a5";
+  ctx.fillRect(player.x+10,player.y-10,14,14);
+
+  // arm swing
+  ctx.fillStyle="#00bba8";
+  ctx.fillRect(player.x+2,player.y+12+run*0.2,6,12);
+  ctx.fillRect(player.x+24,player.y+12-run*0.2,6,12);
+
+  /* obstacles */
+  ctx.fillStyle="#666";
+  obstacles.forEach(o=>{
+    ctx.fillRect(o.x,o.y,o.w,o.h);
   });
 
   score++;
-  update();
-}
-
-/* ================= UI ================= */
-
-function update(){
-  document.getElementById("score").innerText=
-    `${name} | RUNNER : ${score}`;
-}
-
-function over(){
-  clearInterval(loop);
-  document.getElementById("overlay").style.display="block";
+  document.getElementById("score").innerText="SCORE: "+score;
 }
 </script>
 
