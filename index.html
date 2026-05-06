@@ -40,7 +40,7 @@ body::after{
 }
 
 #menu{padding-top:60px;}
-.title{font-size:28px;color:#ff00cc;text-shadow:0 0 10px #ff00cc;}
+.title{font-size:26px;color:#ff00cc;text-shadow:0 0 10px #ff00cc;}
 
 button{
   font-family:'Press Start 2P', cursive;
@@ -103,8 +103,8 @@ canvas{
 <div id="menu">
   <div class="title">E-GAMES ARCADE</div>
 
-  <button onclick="select('snake',this)">SNAKE</button>
   <button onclick="select('runner',this)">RUNNER</button>
+  <button onclick="select('snake',this)">SNAKE</button>
   <button onclick="select('pong',this)">PONG</button><br><br>
 
   <input id="name" placeholder="NAME"><br><br>
@@ -130,7 +130,7 @@ const ctx=c.getContext("2d");
 
 let game,loop,name="",score=0;
 
-/* MENU */
+/* ================= MENU ================= */
 function select(g,el){
   game=g;
   document.querySelectorAll("button").forEach(b=>b.classList.remove("selected"));
@@ -148,8 +148,6 @@ function start(){
   clearInterval(loop);
 
   if(game==="runner") runner();
-  if(game==="snake") snake();
-  if(game==="pong") pong();
 }
 
 /* ================= FOREST ================= */
@@ -157,65 +155,84 @@ function start(){
 let bgFar=[],bgMid=[],bgNear=[];
 
 function initForest(){
-  bgFar=[]; bgMid=[]; bgNear=[];   // FIXED RESET BUG
+  bgFar=[]; bgMid=[]; bgNear=[];
+
+  for(let i=0;i<12;i++)
+    bgFar.push({x:i*60,y:190+Math.random()*20});
 
   for(let i=0;i<10;i++)
-    bgFar.push({x:i*80,y:200});
+    bgMid.push({x:i*80,y:230+Math.random()*20});
 
   for(let i=0;i<8;i++)
-    bgMid.push({x:i*100,y:240});
-
-  for(let i=0;i<6;i++)
-    bgNear.push({x:i*120,y:280});
+    bgNear.push({x:i*100,y:270+Math.random()*20});
 }
 
 function drawTree(x,y,size,color){
-  ctx.fillStyle="#3b2a1a";
-  ctx.fillRect(x,y,size/4,size);
+  ctx.fillStyle="#2b1b10";
+  ctx.fillRect(x+size*0.35,y,size*0.3,size);
 
   ctx.fillStyle=color;
   ctx.beginPath();
-  ctx.arc(x+size/8,y,size/2,0,Math.PI*2);
+  ctx.arc(x+size/2,y,size*0.55,0,Math.PI*2);
   ctx.fill();
+
+  ctx.fillStyle=shade(color,-25);
+  ctx.beginPath();
+  ctx.arc(x+size*0.35,y-8,size*0.45,0,Math.PI*2);
+  ctx.fill();
+
+  ctx.fillStyle=shade(color,20);
+  ctx.beginPath();
+  ctx.arc(x+size*0.6,y-12,size*0.4,0,Math.PI*2);
+  ctx.fill();
+}
+
+function shade(c,amt){
+  let col=c.replace("#","");
+  let num=parseInt(col,16);
+  let r=(num>>16)+amt;
+  let g=((num>>8)&255)+amt;
+  let b=(num&255)+amt;
+  return `rgb(${Math.max(0,r)},${Math.max(0,g)},${Math.max(0,b)})`;
 }
 
 function drawForest(){
   let g=ctx.createLinearGradient(0,0,0,400);
-  g.addColorStop(0,"#1a0033");
+  g.addColorStop(0,"#120020");
   g.addColorStop(1,"#000");
   ctx.fillStyle=g;
   ctx.fillRect(0,0,600,400);
 
   bgFar.forEach(t=>{
     t.x-=1;
-    if(t.x<-50)t.x=650;
-    drawTree(t.x,t.y,20,"#0a3d0a");
+    if(t.x<-60)t.x=620;
+    drawTree(t.x,t.y,18,"#0a3d0a");
   });
 
   bgMid.forEach(t=>{
     t.x-=2;
-    if(t.x<-50)t.x=650;
-    drawTree(t.x,t.y,30,"#0f5a0f");
+    if(t.x<-60)t.x=620;
+    drawTree(t.x,t.y,26,"#0f5a0f");
   });
 
   bgNear.forEach(t=>{
     t.x-=4;
-    if(t.x<-50)t.x=650;
-    drawTree(t.x,t.y,40,"#16a016");
+    if(t.x<-60)t.x=620;
+    drawTree(t.x,t.y,34,"#16a016");
   });
 
   ctx.fillStyle="#003300";
   ctx.fillRect(0,340,600,60);
 }
 
-/* ================= RUNNER (FIXED) ================= */
+/* ================= RUNNER ================= */
 
 let p,o,g;
 
 function runner(){
   initForest();
 
-  p={x:50,y:300,vy:0};
+  p={x:60,y:300,vy:0};
   o=[];
   g=1;
   score=0;
@@ -229,21 +246,26 @@ function runner(){
   loop=setInterval(drawRunner,30);
 }
 
+let frame=0;
+
 function drawRunner(){
+  frame++;
   ctx.clearRect(0,0,600,400);
 
   drawForest();
 
+  /* physics */
   p.vy+=g;
   p.y+=p.vy;
   if(p.y>300)p.y=300;
 
+  /* obstacles */
   if(Math.random()<0.03){
     o.push({x:600,y:320,w:25,h:20});
   }
 
   o.forEach(r=>r.x-=7);
-  o=o.filter(r=>r.x>-50);
+  o=o.filter(r=>r.x>-60);
 
   for(let r of o){
     if(p.x<r.x+r.w && p.x+30>r.x && p.y<r.y+r.h && p.y+30>r.y){
@@ -251,120 +273,46 @@ function drawRunner(){
     }
   }
 
-  ctx.fillStyle="#00ffff";
-  ctx.fillRect(p.x,p.y,30,30);
+  /* ===== PIXEL RUNNER CHARACTER ===== */
 
-  ctx.fillStyle="#888";
-  o.forEach(r=>ctx.fillRect(r.x,r.y,r.w,r.h));
+  let bob=Math.sin(frame/6)*2;
+  let leg=Math.sin(frame/5)*4;
+
+  // head
+  ctx.fillStyle="#ffd6a5";
+  ctx.fillRect(p.x+10,p.y-12+bob,12,12);
+
+  // body
+  ctx.fillStyle="#00e5d5";
+  ctx.fillRect(p.x+8,p.y+2+bob,16,16);
+
+  // arms
+  ctx.fillStyle="#00c0b0";
+  ctx.fillRect(p.x+2,p.y+6+bob+leg*0.3,5,10);
+  ctx.fillRect(p.x+24,p.y+6+bob-leg*0.3,5,10);
+
+  // legs
+  ctx.fillStyle="#004c4c";
+  ctx.fillRect(p.x+10,p.y+18+bob+leg,6,12);
+  ctx.fillRect(p.x+18,p.y+18+bob-leg,6,12);
+
+  /* rocks */
+  o.forEach(r=>{
+    ctx.fillStyle="#555";
+    ctx.fillRect(r.x,r.y,r.w,r.h);
+    ctx.fillStyle="#999";
+    ctx.fillRect(r.x+2,r.y+2,r.w-4,r.h-4);
+  });
 
   score++;
   update();
 }
 
-/* ================= SNAKE ================= */
-
-let s,dx,dy,f;
-
-function snake(){
-  s=[{x:200,y:200}];
-  dx=20;dy=0;
-  f=randomFood();
-  score=0;
-
-  document.onkeydown=e=>{
-    let k=e.key.toLowerCase();
-    if((k==="w"||k==="arrowup")&&dy===0){dx=0;dy=-20;}
-    if((k==="s"||k==="arrowdown")&&dy===0){dx=0;dy=20;}
-    if((k==="a"||k==="arrowleft")&&dx===0){dx=-20;dy=0;}
-    if((k==="d"||k==="arrowright")&&dx===0){dx=20;dy=0;}
-  };
-
-  loop=setInterval(drawSnake,110);
-}
-
-function randomFood(){
-  return {
-    x:Math.floor(Math.random()*30)*20,
-    y:Math.floor(Math.random()*20)*20
-  };
-}
-
-function drawSnake(){
-  ctx.clearRect(0,0,600,400);
-
-  let h={x:s[0].x+dx,y:s[0].y+dy};
-
-  if(h.x<0||h.y<0||h.x>=600||h.y>=400)return over();
-
-  s.unshift(h);
-
-  if(h.x===f.x&&h.y===f.y){
-    score++;
-    f=randomFood();
-  }else s.pop();
-
-  ctx.fillStyle="#00ff88";
-  s.forEach(p=>ctx.fillRect(p.x,p.y,20,20));
-
-  ctx.fillStyle="red";
-  ctx.fillRect(f.x,f.y,20,20);
-
-  update();
-}
-
-/* ================= PONG ================= */
-
-let pad,ball,hold=false;
-
-function pong(){
-  pad={x:260,y:370,w:80,h:10};
-  ball={x:300,y:200,dx:5,dy:-5};
-  score=0;
-
-  c.onmousedown=()=>hold=true;
-  c.onmouseup=()=>hold=false;
-
-  c.onmousemove=e=>{
-    if(!hold)return;
-    let r=c.getBoundingClientRect();
-    pad.x=e.clientX-r.left-pad.w/2;
-  };
-
-  loop=setInterval(drawPong,25);
-}
-
-function drawPong(){
-  ctx.clearRect(0,0,600,400);
-
-  ball.x+=ball.dx;
-  ball.y+=ball.dy;
-
-  if(ball.x<0||ball.x>600)ball.dx*=-1;
-  if(ball.y<0)ball.dy*=-1;
-
-  if(ball.y>pad.y&&ball.x>pad.x&&ball.x<pad.x+pad.w){
-    ball.dy*=-1;
-    ball.dx*=1.1;
-    score++;
-  }
-
-  if(ball.y>400)return over();
-
-  ctx.fillStyle="#fff";
-  ctx.fillRect(pad.x,pad.y,pad.w,pad.h);
-
-  ctx.beginPath();
-  ctx.arc(ball.x,ball.y,8,0,Math.PI*2);
-  ctx.fill();
-
-  update();
-}
-
-/* ================= COMMON ================= */
+/* ================= UI ================= */
 
 function update(){
   document.getElementById("score").innerText=
-    `${name} | ${game.toUpperCase()} : ${score}`;
+    `${name} | RUNNER : ${score}`;
 }
 
 function over(){
