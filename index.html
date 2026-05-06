@@ -31,18 +31,19 @@ body::before{
   pointer-events:none;
 }
 
-#menu{
-  padding-top:60px;
+body::after{
+  content:"";
+  position:fixed;
+  inset:0;
+  background: radial-gradient(circle at 50% 30%, #1a0033, #000);
+  z-index:-1;
 }
 
-.title{
-  font-size:22px;
-  color:#ff00cc;
-  text-shadow:0 0 10px #ff00cc;
-}
+#menu{padding-top:60px;}
+.title{font-size:24px;color:#ff00cc;text-shadow:0 0 10px #ff00cc;}
 
 button{
-  font-family:'Press Start 2P';
+  font-family:'Press Start 2P', cursive;
   padding:10px;
   margin:5px;
   border:2px solid #00ffee;
@@ -50,19 +51,34 @@ button{
   color:#00ffee;
   cursor:pointer;
 }
+button:active{transform:scale(0.95);}
+.selected{background:#00ffee;color:#000}
 
-button:active{transform:scale(0.95)}
+input{
+  padding:10px;
+  background:#111;
+  color:#00ffee;
+  border:none;
+}
 
-#game{
+#arcade{
   display:none;
+  height:100vh;
+  align-items:center;
+  justify-content:center;
+}
+
+.machine{
+  border:6px solid #333;
+  padding:10px;
+  background:#050505;
+  box-shadow:0 0 30px #ff00cc;
 }
 
 canvas{
-  background:#000;
   width:90vw;
-  max-width:700px;
-  border:3px solid #222;
-  margin-top:20px;
+  max-width:600px;
+  background:#000;
 }
 
 #score{
@@ -71,160 +87,231 @@ canvas{
   left:10px;
   font-size:10px;
 }
+
+#overlay{
+  position:absolute;
+  top:50%;
+  left:50%;
+  transform:translate(-50%,-50%);
+  display:none;
+}
 </style>
 </head>
 
 <body>
 
 <div id="menu">
-  <div class="title">SIDE RUNNER</div>
-  <button onclick="start()">START GAME</button>
+  <div class="title">RUNNER MODE</div>
+
+  <button onclick="select('runner',this)">RUNNER</button><br><br>
+
+  <input id="name" placeholder="NAME"><br><br>
+  <button onclick="start()">START</button>
 </div>
 
 <div id="score"></div>
 
-<div id="game">
-  <canvas id="c" width="700" height="400"></canvas>
+<div id="overlay">
+  <h3>GAME OVER</h3>
+  <button onclick="start()">RESTART</button>
+</div>
+
+<div id="arcade">
+  <div class="machine">
+    <canvas id="c" width="600" height="400"></canvas>
+  </div>
 </div>
 
 <script>
 const c=document.getElementById("c");
 const ctx=c.getContext("2d");
 
-let player,obstacles,frame,score,groundY=320,loop;
+let game,loop,name="",score=0;
 
-/* START */
+/* MENU */
+function select(g,el){
+  game=g;
+  document.querySelectorAll("button").forEach(b=>b.classList.remove("selected"));
+  el.classList.add("selected");
+}
+
 function start(){
+  name=document.getElementById("name").value||"PLAYER";
+  if(!game) return;
+
   document.getElementById("menu").style.display="none";
-  document.getElementById("game").style.display="block";
+  document.getElementById("arcade").style.display="flex";
+  document.getElementById("overlay").style.display="none";
 
-  player={x:120,y:groundY,w:30,h:40,vy:0,jump:false};
-  obstacles=[];
-  frame=0;
-  score=0;
-
-  document.onkeydown=e=>{
-    if(e.code==="Space" && !player.jump){
-      player.vy=-12;
-      player.jump=true;
-    }
-  };
-
-  loop=setInterval(update,16);
+  clearInterval(loop);
+  runner();
 }
 
-/* BACKGROUND */
-let trees=[];
-for(let i=0;i<12;i++){
-  trees.push({x:i*70,y:260+Math.random()*40,size:30+Math.random()*20});
+/* ================= FOREST ================= */
+
+let far=[],mid=[],near=[],groundX=0;
+
+function initForest(){
+  far=[],mid=[],near=[];
+  for(let i=0;i<14;i++) far.push({x:i*60,y:170+Math.random()*20});
+  for(let i=0;i<10;i++) mid.push({x:i*80,y:220+Math.random()*20});
+  for(let i=0;i<8;i++) near.push({x:i*100,y:270+Math.random()*15});
 }
 
-/* DRAW TREE */
-function drawTree(x,y,s){
-  ctx.fillStyle="#2a1b10";
-  ctx.fillRect(x+10,y,8,s);
+function tree(x,y,s,c){
+  // trunk
+  ctx.fillStyle="#2b1b10";
+  ctx.fillRect(x+s*0.4,y,s*0.2,s);
 
-  ctx.fillStyle="#0f5";
+  // layered leaves
+  ctx.fillStyle=c;
   ctx.beginPath();
-  ctx.arc(x,y,15,0,Math.PI*2);
-  ctx.fill();
+  ctx.arc(x+s/2,y,s*0.55,0,Math.PI*2); ctx.fill();
 
+  ctx.fillStyle=shade(c,20);
   ctx.beginPath();
-  ctx.arc(x+10,y-10,18,0,Math.PI*2);
-  ctx.fill();
+  ctx.arc(x+s/3,y-10,s*0.45,0,Math.PI*2); ctx.fill();
 
+  ctx.fillStyle=shade(c,-20);
   ctx.beginPath();
-  ctx.arc(x+20,y,15,0,Math.PI*2);
-  ctx.fill();
+  ctx.arc(x+s*0.65,y-12,s*0.4,0,Math.PI*2); ctx.fill();
 }
 
-/* UPDATE LOOP */
-function update(){
-  frame++;
-  ctx.clearRect(0,0,700,400);
+function shade(c,a){
+  let n=parseInt(c.slice(1),16);
+  let r=Math.min(255,Math.max(0,(n>>16)+a));
+  let g=Math.min(255,Math.max(0(((n>>8)&255)+a)));
+  let b=Math.min(255,Math.max(0((n&255)+a)));
+  return `rgb(${r},${g},${b})`;
+}
 
-  /* SKY */
+function drawForest(){
   let g=ctx.createLinearGradient(0,0,0,400);
   g.addColorStop(0,"#120020");
   g.addColorStop(1,"#000");
   ctx.fillStyle=g;
-  ctx.fillRect(0,0,700,400);
+  ctx.fillRect(0,0,600,400);
 
-  /* PARALLAX TREES */
-  trees.forEach(t=>{
-    t.x-=2;
-    if(t.x<-50)t.x=750;
-    drawTree(t.x,t.y,t.size);
+  far.forEach(t=>{
+    t.x-=1;if(t.x<-60)t.x=620;
+    tree(t.x,t.y,18,"#0a3d0a");
   });
 
-  /* GROUND */
+  mid.forEach(t=>{
+    t.x-=2;if(t.x<-60)t.x=620;
+    tree(t.x,t.y,26,"#0f5a0f");
+  });
+
+  near.forEach(t=>{
+    t.x-=4;if(t.x<-60)t.x=620;
+    tree(t.x,t.y,34,"#16a016");
+  });
+
+  // ground
   ctx.fillStyle="#003300";
-  ctx.fillRect(0,groundY,700,80);
+  ctx.fillRect(0,330,600,70);
 
-  ctx.fillStyle="#005500";
-  for(let i=0;i<700;i+=20){
-    ctx.fillRect((i-frame*5)%700,groundY+10,10,5);
+  groundX-=6;
+  if(groundX<-40)groundX=0;
+
+  for(let i=0;i<600;i+=40){
+    ctx.fillStyle="#00aa0030";
+    ctx.fillRect(i+groundX,340,20,10);
+  }
+}
+
+/* ================= RUNNER ================= */
+
+let p,o,g,frame=0;
+
+function runner(){
+  initForest();
+
+  p={x:80,y:300,vy:0};
+  o=[];
+  g=1;
+  score=0;
+
+  document.onkeydown=e=>{
+    if((e.code==="Space"||e.key==="ArrowUp")&&p.y===300){
+      p.vy=-15;
+    }
+  };
+
+  loop=setInterval(draw,25);
+}
+
+function draw(){
+  frame++;
+  ctx.clearRect(0,0,600,400);
+
+  drawForest();
+
+  // physics
+  p.vy+=g;
+  p.y+=p.vy;
+  if(p.y>300)p.y=300;
+
+  // spawn obstacles
+  if(Math.random()<0.03){
+    o.push({x:600,y:320,w:20+Math.random()*20,h:20});
   }
 
-  /* GRAVITY */
-  player.vy+=0.6;
-  player.y+=player.vy;
+  o.forEach(r=>r.x-=7);
+  o=o.filter(r=>r.x>-60);
 
-  if(player.y>=groundY-player.h){
-    player.y=groundY-player.h;
-    player.vy=0;
-    player.jump=false;
-  }
-
-  /* OBSTACLES */
-  if(Math.random()<0.02){
-    obstacles.push({x:700,y:groundY-20,w:20,h:20});
-  }
-
-  obstacles.forEach(o=>o.x-=6);
-  obstacles=obstacles.filter(o=>o.x>-50);
-
-  /* COLLISION */
-  for(let o of obstacles){
-    if(player.x<o.x+o.w &&
-       player.x+player.w>o.x &&
-       player.y<o.y+o.h &&
-       player.y+player.h>o.y){
-      clearInterval(loop);
-      alert("GAME OVER");
-      location.reload();
+  // collision
+  for(let r of o){
+    if(p.x<r.x+r.w && p.x+30>r.x && p.y<r.y+r.h && p.y+30>r.y){
+      return over();
     }
   }
 
-  /* ===== PLAYER (SIDE RUNNER ANIMATION) ===== */
-  let run = Math.sin(frame/6)*6;
+  /* ================= RUNNER CHARACTER ================= */
 
-  // legs
-  ctx.fillStyle="#004c4c";
-  ctx.fillRect(player.x+5,player.y+30+run,8,10);
-  ctx.fillRect(player.x+17,player.y+30-run,8,10);
+  let bob=Math.sin(frame/5)*2;
+  let leg=Math.sin(frame/4)*5;
 
-  // body
-  ctx.fillStyle="#00e5d5";
-  ctx.fillRect(player.x+8,player.y+10,16,20);
-
-  // head
+  // HEAD
   ctx.fillStyle="#ffd6a5";
-  ctx.fillRect(player.x+10,player.y-10,14,14);
+  ctx.fillRect(p.x+12,p.y-10+bob,12,12);
 
-  // arm swing
-  ctx.fillStyle="#00bba8";
-  ctx.fillRect(player.x+2,player.y+12+run*0.2,6,12);
-  ctx.fillRect(player.x+24,player.y+12-run*0.2,6,12);
+  // BODY (lean forward = running feel)
+  ctx.fillStyle="#00e5d5";
+  ctx.fillRect(p.x+10,p.y+2+bob,16,18);
 
-  /* obstacles */
-  ctx.fillStyle="#666";
-  obstacles.forEach(o=>{
-    ctx.fillRect(o.x,o.y,o.w,o.h);
+  // ARMS (swing)
+  ctx.fillStyle="#00bbaa";
+  ctx.fillRect(p.x+4,p.y+6+bob+leg*0.3,6,10);
+  ctx.fillRect(p.x+24,p.y+6+bob-leg*0.3,6,10);
+
+  // LEGS (motion)
+  ctx.fillStyle="#003c3c";
+  ctx.fillRect(p.x+12,p.y+20+bob+leg,6,14);
+  ctx.fillRect(p.x+18,p.y+20+bob-leg,6,14);
+
+  /* rocks */
+  o.forEach(r=>{
+    ctx.fillStyle="#555";
+    ctx.fillRect(r.x,r.y,r.w,r.h);
+    ctx.fillStyle="#888";
+    ctx.fillRect(r.x+2,r.y+2,r.w-4,r.h-4);
   });
 
   score++;
-  document.getElementById("score").innerText="SCORE: "+score;
+  update();
+}
+
+/* ================= UI ================= */
+
+function update(){
+  document.getElementById("score").innerText=
+    `${name} | RUNNER : ${score}`;
+}
+
+function over(){
+  clearInterval(loop);
+  document.getElementById("overlay").style.display="block";
 }
 </script>
 
