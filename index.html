@@ -3,180 +3,185 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Arcade X Level Up</title>
+<title>E-GAMES Arcade</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 
 <style>
 body{
   margin:0;
-  overflow:hidden;
   font-family:Arial;
-  background:black;
+  background:#000;
   color:white;
+  overflow:hidden;
 }
 
-/* ================= SPACE BACKGROUND ================= */
-body::before{
-  content:"";
-  position:fixed;
-  inset:0;
-  background:
-    radial-gradient(circle at 20% 20%, #1a0033, transparent 40%),
-    radial-gradient(circle at 80% 70%, #002b5c, transparent 40%),
-    black;
-  z-index:-2;
-}
-
-/* grid overlay like arcade HUD */
-body::after{
-  content:"";
-  position:fixed;
-  inset:0;
-  background:
-    linear-gradient(rgba(0,255,255,0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0,255,255,0.05) 1px, transparent 1px);
-  background-size:40px 40px;
-  z-index:-1;
-}
-
-/* ================= LEVEL UP SCREEN ================= */
+/* ===== HOME SCREEN ===== */
 #menu{
-  position:absolute;
-  inset:0;
+  height:100vh;
   display:flex;
+  flex-direction:column;
   justify-content:center;
   align-items:center;
-  flex-direction:column;
+  background:radial-gradient(circle,#120018,#000);
 }
 
-/* glowing arcade panel */
-.panel{
-  width:320px;
-  padding:25px;
-  text-align:center;
-  background:rgba(0,0,0,0.75);
-  border:3px solid #00ffff;
-  box-shadow:0 0 25px #00ffff, inset 0 0 20px #ff00cc;
-  border-radius:14px;
-  animation:float 3s ease-in-out infinite;
-}
-
-@keyframes float{
-  0%,100%{transform:translateY(0)}
-  50%{transform:translateY(-6px)}
-}
-
-.title{
-  font-size:32px;
-  color:#ffcc00;
+.logo{
+  font-family:'Press Start 2P', monospace;
+  font-size:34px;
+  color:#ff00cc;
   text-shadow:0 0 10px #ff00cc,0 0 25px #00ffff;
-  margin-bottom:10px;
+  margin-bottom:20px;
+  animation:pulse 1.5s infinite;
+}
+
+@keyframes pulse{
+  0%{transform:scale(1)}
+  50%{transform:scale(1.05)}
+  100%{transform:scale(1)}
 }
 
 .subtitle{
-  font-size:12px;
-  color:#aaa;
-  margin-bottom:15px;
-  letter-spacing:2px;
+  font-family:'Press Start 2P';
+  font-size:10px;
+  color:#00ffff;
+  margin-bottom:20px;
 }
 
-/* buttons */
-button{
-  padding:10px 16px;
-  margin:6px;
+input{
+  padding:10px;
   border:none;
-  cursor:pointer;
-  font-weight:bold;
+  border-radius:8px;
   background:#111;
   color:white;
-  border:2px solid #00ffff;
-  transition:0.15s;
+  margin-bottom:10px;
+  text-align:center;
 }
-button:hover{
-  background:#00ffff;
-  color:black;
-  transform:scale(1.05);
+
+button{
+  padding:12px 18px;
+  margin:6px;
+  border:none;
+  border-radius:10px;
+  cursor:pointer;
+  background:#fff;
+  font-weight:bold;
+  transition:0.2s;
 }
 button:active{transform:scale(0.9)}
+.selected{background:#ff00cc;color:white}
 
-/* start button glow like image */
-.startBtn{
-  background:#ff00cc;
-  border:none;
-  box-shadow:0 0 20px #ff00cc;
-}
-
-/* ================= GAME SCREEN ================= */
-#gameScreen{
+/* ===== ARCADE SCREEN ===== */
+#arcade{
   display:none;
   height:100vh;
   justify-content:center;
   align-items:center;
+  background:radial-gradient(circle,#050010,#000);
 }
 
-.frame{
-  border:4px solid #00ffff;
-  box-shadow:0 0 30px #00ffff;
-  background:black;
-  padding:10px;
-  border-radius:10px;
+/* CRT effect */
+#arcade::after{
+  content:"";
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  background:repeating-linear-gradient(
+    0deg,
+    rgba(255,255,255,0.04),
+    rgba(255,255,255,0.04) 1px,
+    transparent 2px,
+    transparent 4px
+  );
+}
+
+/* arcade frame */
+.machine{
+  border:6px solid #222;
+  padding:12px;
+  border-radius:16px;
+  box-shadow:0 0 30px #ff00cc;
+  background:#000;
 }
 
 canvas{
-  width:92vw;
+  width:90vw;
   max-width:600px;
-  background:black;
+  height:auto;
+  background:#000;
 }
 
-/* ================= SCORE ================= */
+/* HUD */
 #score{
   position:absolute;
   top:10px;
   left:10px;
+  font-size:12px;
   color:#00ffff;
 }
 
-/* ================= OVERLAY ================= */
+/* overlay */
 #overlay{
   position:absolute;
-  inset:0;
+  top:50%;
+  left:50%;
+  transform:translate(-50%,-50%);
   display:none;
-  justify-content:center;
-  align-items:center;
-  flex-direction:column;
-  background:rgba(0,0,0,0.8);
+  text-align:center;
+}
+
+/* mobile controls */
+#controls{
+  display:none;
+  position:absolute;
+  bottom:20px;
+  width:100%;
+  text-align:center;
+}
+#controls button{
+  width:60px;
+  height:60px;
 }
 </style>
 </head>
 
 <body>
 
-<!-- ================= MENU ================= -->
+<!-- ===== MENU ===== -->
 <div id="menu">
-  <div class="panel">
-    <div class="title">LEVEL UP</div>
-    <div class="subtitle">PRESS START BUTTON</div>
+  <div class="logo">E-GAMES</div>
+  <div class="subtitle">START NEW GAME</div>
 
-    <button onclick="pick('snake')">🐍 SNAKE</button>
-    <button onclick="pick('runner')">🏃 RUNNER</button>
-    <button onclick="pick('pong')">🏓 PONG</button>
+  <input id="name" placeholder="PLAYER NAME">
 
-    <br>
-    <button class="startBtn" onclick="startGame()">▶ PLAY</button>
+  <div>
+    <button onclick="select('snake',this)">🐍 Snake</button>
+    <button onclick="select('runner',this)">🏃 Runner</button>
+    <button onclick="select('pong',this)">🏓 Pong</button>
   </div>
+
+  <button onclick="start()">PLAY</button>
 </div>
 
-<div id="score"></div>
-
-<div id="overlay">
-  <h1>GAME OVER</h1>
-  <button onclick="startGame()">RESTART</button>
-  <button onclick="home()">HOME</button>
-</div>
-
-<!-- ================= GAME ================= -->
-<div id="gameScreen">
-  <div class="frame">
+<!-- ===== ARCADE ===== -->
+<div id="arcade">
+  <div class="machine">
     <canvas id="c" width="600" height="400"></canvas>
+  </div>
+
+  <div id="score"></div>
+
+  <div id="overlay">
+    <h2>GAME OVER</h2>
+    <button onclick="start()">RESTART</button>
+    <button onclick="home()">HOME</button>
+  </div>
+
+  <div id="controls">
+    <button onclick="dir('up')">↑</button><br>
+    <button onclick="dir('left')">←</button>
+    <button onclick="dir('down')">↓</button>
+    <button onclick="dir('right')">→</button>
   </div>
 </div>
 
@@ -184,19 +189,23 @@ canvas{
 const c=document.getElementById("c");
 const ctx=c.getContext("2d");
 
-let game=null,loop,score=0;
+let game,loop,name="";
+let score=0;
 
-/* ================= PICK ================= */
-function pick(g){
+/* ===== SELECT GAME ===== */
+function select(g,el){
   game=g;
+  document.querySelectorAll("button").forEach(b=>b.classList.remove("selected"));
+  el.classList.add("selected");
 }
 
-/* ================= START ================= */
-function startGame(){
-  if(!game)return alert("Pick a game!");
+/* ===== START ===== */
+function start(){
+  name=document.getElementById("name").value||"PLAYER";
+  if(!game)return alert("Select game");
 
   document.getElementById("menu").style.display="none";
-  document.getElementById("gameScreen").style.display="flex";
+  document.getElementById("arcade").style.display="flex";
   document.getElementById("overlay").style.display="none";
 
   clearInterval(loop);
@@ -208,18 +217,28 @@ function startGame(){
 
 function home(){
   clearInterval(loop);
+  document.getElementById("arcade").style.display="none";
   document.getElementById("menu").style.display="flex";
-  document.getElementById("gameScreen").style.display="none";
-  document.getElementById("overlay").style.display="none";
 }
 
-/* ================= SNAKE ================= */
+/* ===== GRID ===== */
+function grid(){
+  ctx.strokeStyle="rgba(0,255,255,0.05)";
+  for(let i=0;i<600;i+=20){
+    ctx.beginPath();
+    ctx.moveTo(i,0);
+    ctx.lineTo(i,400);
+    ctx.stroke();
+  }
+}
+
+/* ===== SNAKE ===== */
 let s,dx,dy,f;
 
 function snake(){
   s=[{x:200,y:200}];
   dx=20;dy=0;
-  f={x:300,y:200};
+  f=food();
   score=0;
 
   document.onkeydown=e=>{
@@ -230,11 +249,19 @@ function snake(){
     if((k==="d"||k==="arrowright")&&dx===0){dx=20;dy=0;}
   };
 
-  loop=setInterval(drawSnake,90);
+  loop=setInterval(drawSnake,100);
+}
+
+function food(){
+  return {
+    x:Math.floor(Math.random()*30)*20,
+    y:Math.floor(Math.random()*20)*20
+  };
 }
 
 function drawSnake(){
   ctx.clearRect(0,0,600,400);
+  grid();
 
   let h={x:s[0].x+dx,y:s[0].y+dy};
 
@@ -244,7 +271,7 @@ function drawSnake(){
 
   if(h.x===f.x&&h.y===f.y){
     score++;
-    f={x:Math.floor(Math.random()*30)*20,y:Math.floor(Math.random()*20)*20};
+    f=food();
   }else s.pop();
 
   ctx.fillStyle="#00ffff";
@@ -256,7 +283,7 @@ function drawSnake(){
   update();
 }
 
-/* ================= RUNNER ================= */
+/* ===== RUNNER ===== */
 let p,o,g;
 
 function runner(){
@@ -264,7 +291,8 @@ function runner(){
   o=[];g=1;score=0;
 
   document.onkeydown=e=>{
-    if((e.code==="Space"||e.key==="ArrowUp")&&p.y===300)p.vy=-15;
+    if((e.code==="Space"||e.key==="ArrowUp")&&p.y===300)
+      p.vy=-15;
   };
 
   loop=setInterval(drawRunner,30);
@@ -272,6 +300,7 @@ function runner(){
 
 function drawRunner(){
   ctx.clearRect(0,0,600,400);
+  grid();
 
   p.vy+=g;
   p.y+=p.vy;
@@ -296,7 +325,7 @@ function drawRunner(){
   update();
 }
 
-/* ================= PONG ================= */
+/* ===== PONG ===== */
 let pad,ball,hold=false;
 
 function pong(){
@@ -313,11 +342,12 @@ function pong(){
     pad.x=e.clientX-r.left-pad.w/2;
   };
 
-  loop=setInterval(drawPong,22);
+  loop=setInterval(drawPong,25);
 }
 
 function drawPong(){
   ctx.clearRect(0,0,600,400);
+  grid();
 
   ball.x+=ball.dx;
   ball.y+=ball.dy;
@@ -343,15 +373,15 @@ function drawPong(){
   update();
 }
 
-/* ================= COMMON ================= */
+/* ===== COMMON ===== */
 function update(){
   document.getElementById("score").innerText=
-    `${game.toUpperCase()} SCORE: ${score}`;
+  `${name} | ${game.toUpperCase()} : ${score}`;
 }
 
 function over(){
   clearInterval(loop);
-  document.getElementById("overlay").style.display="flex";
+  document.getElementById("overlay").style.display="block";
 }
 </script>
 
