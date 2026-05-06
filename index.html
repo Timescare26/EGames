@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>E-GAMES ARCADE</title>
+<title>E-GAMES ARCADE X</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 
@@ -17,7 +17,7 @@ body{
   overflow:hidden;
 }
 
-/* CRT + scanlines */
+/* CRT */
 body::before{
   content:"";
   position:fixed;
@@ -32,53 +32,37 @@ body::before{
   pointer-events:none;
 }
 
-/* glow bg */
 body::after{
   content:"";
   position:fixed;
   inset:0;
-  background:radial-gradient(circle at center,#220033,#000);
+  background:radial-gradient(circle at center,#1a0033,#000);
   z-index:-1;
 }
 
 /* MENU */
-#menu{
-  padding-top:60px;
-}
-
-.title{
-  font-size:28px;
-  color:#ff00cc;
-  text-shadow:0 0 10px #ff00cc;
-}
-
-.subtitle{
-  font-size:14px;
-  color:#00ffff;
-  margin-bottom:30px;
-}
-
+#menu{padding-top:60px;}
+.title{font-size:28px;color:#ff00cc;text-shadow:0 0 10px #ff00cc;}
 button{
   font-family:'Press Start 2P', cursive;
-  padding:12px;
-  margin:6px;
-  border:none;
+  padding:10px;
+  margin:5px;
+  border:2px solid #00ffee;
   background:#111;
   color:#00ffee;
-  border:2px solid #00ffee;
   cursor:pointer;
 }
+button:active{transform:scale(0.95);}
+.selected{background:#00ffee;color:#000}
 
-button:active{
-  transform:scale(0.95);
+input{
+  padding:10px;
+  background:#111;
+  border:none;
+  color:#00ffee;
 }
 
-.selected{
-  background:#00ffee;
-  color:#000;
-}
-
-/* arcade screen */
+/* ARCADE */
 #arcade{
   display:none;
   height:100vh;
@@ -88,28 +72,24 @@ button:active{
 
 .machine{
   border:6px solid #333;
-  padding:10px;
   background:#050505;
+  padding:10px;
   box-shadow:0 0 25px #ff00cc;
 }
 
 canvas{
-  background:#000;
   width:90vw;
   max-width:600px;
-  height:400px;
+  background:#000;
 }
 
-/* score */
 #score{
   position:absolute;
   top:10px;
   left:10px;
   font-size:10px;
-  color:#00ffee;
 }
 
-/* overlay */
 #overlay{
   position:absolute;
   top:50%;
@@ -123,16 +103,14 @@ canvas{
 <body>
 
 <div id="menu">
-  <div class="title">E-GAMES</div>
-  <div class="subtitle">RETRO ARCADE SYSTEM</div>
+  <div class="title">E-GAMES ARCADE</div>
 
   <button onclick="select('snake',this)">SNAKE</button>
   <button onclick="select('runner',this)">RUNNER</button>
   <button onclick="select('pong',this)">PONG</button><br><br>
 
-  <input id="name" placeholder="PLAYER NAME"><br><br>
-
-  <button onclick="start()">START GAME</button>
+  <input id="name" placeholder="NAME"><br><br>
+  <button onclick="start()">START</button>
 </div>
 
 <div id="score"></div>
@@ -140,7 +118,6 @@ canvas{
 <div id="overlay">
   <h3>GAME OVER</h3>
   <button onclick="start()">RESTART</button>
-  <button onclick="home()">HOME</button>
 </div>
 
 <div id="arcade">
@@ -153,10 +130,9 @@ canvas{
 const c=document.getElementById("c");
 const ctx=c.getContext("2d");
 
-let game=null,loop,name="";
-let score=0;
+let game,loop,name="",score=0;
 
-/* ---------- MENU ---------- */
+/* MENU */
 function select(g,el){
   game=g;
   document.querySelectorAll("button").forEach(b=>b.classList.remove("selected"));
@@ -165,7 +141,7 @@ function select(g,el){
 
 function start(){
   name=document.getElementById("name").value||"PLAYER";
-  if(!game)return alert("SELECT GAME");
+  if(!game)return;
 
   document.getElementById("menu").style.display="none";
   document.getElementById("arcade").style.display="flex";
@@ -178,13 +154,108 @@ function start(){
   if(game==="pong") pong();
 }
 
-function home(){
-  clearInterval(loop);
-  document.getElementById("menu").style.display="block";
-  document.getElementById("arcade").style.display="none";
+/* ================= FOREST BACKGROUND ================= */
+let trees=[];
+let groundX=0;
+
+function drawForest(){
+  // moving ground
+  ctx.fillStyle="#003300";
+  ctx.fillRect(0,350,600,50);
+
+  groundX-=4;
+  if(groundX<-20)groundX=0;
+
+  for(let i=0;i<600;i+=40){
+    ctx.fillStyle="#00aa00";
+    ctx.fillRect(i+groundX,340,20,10);
+  }
+
+  // trees (parallax)
+  trees.forEach(t=>{
+    t.x-=t.speed;
+
+    ctx.fillStyle="#005500";
+    ctx.fillRect(t.x,t.y,10,40);
+
+    ctx.fillStyle="#007700";
+    ctx.fillRect(t.x-10,t.y,30,20);
+  });
+
+  trees=trees.filter(t=>t.x>-50);
+
+  if(Math.random()<0.03){
+    trees.push({x:600,y:300+Math.random()*20,speed:2});
+  }
 }
 
-/* ---------- SNAKE PIXEL ---------- */
+/* ================= RUNNER (FIXED + FOREST) ================= */
+let p,o,g;
+
+function runner(){
+  p={x:50,y:300,vy:0};
+  o=[];
+  g=1;
+  score=0;
+
+  document.onkeydown=e=>{
+    if((e.code==="Space"||e.key==="ArrowUp")&&p.y===300){
+      p.vy=-15;
+    }
+  };
+
+  loop=setInterval(drawRunner,30);
+}
+
+function drawRunner(){
+  ctx.clearRect(0,0,600,400);
+
+  drawForest();
+
+  // player physics
+  p.vy+=g;
+  p.y+=p.vy;
+  if(p.y>300)p.y=300;
+
+  // spawn rocks
+  if(Math.random()<0.03){
+    o.push({
+      x:600,
+      y:320,
+      w:20+Math.random()*20,
+      h:20+Math.random()*20
+    });
+  }
+
+  // move obstacles
+  o.forEach(x=>x.x-=6);
+  o=o.filter(x=>x.x>-40);
+
+  // collision
+  for(let x of o){
+    if(
+      p.x < x.x+x.w &&
+      p.x+30 > x.x &&
+      p.y < x.y+x.h &&
+      p.y+30 > x.y
+    ){
+      return over();
+    }
+  }
+
+  // draw player
+  ctx.fillStyle="#00ffff";
+  ctx.fillRect(p.x,p.y,30,30);
+
+  // rocks
+  ctx.fillStyle="#888";
+  o.forEach(x=>ctx.fillRect(x.x,x.y,x.w,x.h));
+
+  score++;
+  update();
+}
+
+/* ================= SNAKE ================= */
 let s,dx,dy,f;
 
 function snake(){
@@ -204,96 +275,33 @@ function snake(){
   loop=setInterval(drawSnake,110);
 }
 
-function food(){
-  return {x:Math.floor(Math.random()*30)*20,y:Math.floor(Math.random()*20)*20};
-}
-
-/* pixel snake */
-function drawSnakePart(x,y,head=false){
-  ctx.fillStyle="#003b2f";
-  ctx.fillRect(x,y,20,20);
-
-  ctx.fillStyle=head?"#00ff88":"#00cc66";
-  ctx.fillRect(x+3,y+3,14,14);
-
-  if(head){
-    ctx.fillStyle="#000";
-    ctx.fillRect(x+6,y+6,3,3);
-    ctx.fillRect(x+12,y+6,3,3);
-  }
-}
-
-/* pixel apple */
-function apple(x,y){
-  ctx.fillStyle="#8b0000";
-  ctx.fillRect(x,y,20,20);
-
-  ctx.fillStyle="#ff3333";
-  ctx.fillRect(x+3,y+3,14,14);
-
-  ctx.fillStyle="#00ff66";
-  ctx.fillRect(x+10,y-3,4,4);
-}
-
 function drawSnake(){
   ctx.clearRect(0,0,600,400);
 
   let h={x:s[0].x+dx,y:s[0].y+dy};
 
-  if(h.x<0||h.y<0||h.x>=600||h.y>=400) return over();
+  if(h.x<0||h.y<0||h.x>=600||h.y>=400)return over();
 
   s.unshift(h);
-
   if(h.x===f.x&&h.y===f.y){
     score++;
     f=food();
   }else s.pop();
 
-  s.forEach((p,i)=>drawSnakePart(p.x,p.y,i===0));
-  apple(f.x,f.y);
+  ctx.fillStyle="#00ff88";
+  s.forEach(p=>ctx.fillRect(p.x,p.y,20,20));
+
+  ctx.fillStyle="red";
+  ctx.fillRect(f.x,f.y,20,20);
 
   update();
 }
 
-/* ---------- RUNNER ---------- */
-let p,o,g;
-
-function runner(){
-  p={x:50,y:300,vy:0};
-  o=[];g=1;score=0;
-
-  document.onkeydown=e=>{
-    if((e.code==="Space"||e.key==="ArrowUp")&&p.y===300)p.vy=-15;
-  };
-
-  loop=setInterval(drawRunner,30);
+function food(){
+  return {x:Math.floor(Math.random()*30)*20,y:Math.floor(Math.random()*20)*20};
 }
 
-function drawRunner(){
-  ctx.clearRect(0,0,600,400);
-
-  p.vy+=g;
-  p.y+=p.vy;
-  if(p.y>300)p.y=300;
-
-  if(Math.random()<0.02)o.push({x:600,y:320});
-
-  o.forEach(x=>x.x-=6);
-  o=o.filter(x=>x.x>-20);
-
-  for(let x of o) if(x.x<80&&p.y===300) return over();
-
-  ctx.fillStyle="#00ffff";
-  ctx.fillRect(p.x,p.y,30,30);
-
-  ctx.fillStyle="#ff0044";
-  o.forEach(x=>ctx.fillRect(x.x,x.y,20,20));
-
-  score++;
-  update();
-}
-
-/* ---------- PONG ---------- */
+/* ================= PONG ================= */
 let pad,ball,hold=false;
 
 function pong(){
@@ -308,7 +316,6 @@ function pong(){
     if(!hold)return;
     let r=c.getBoundingClientRect();
     pad.x=e.clientX-r.left-pad.w/2;
-    pad.x=Math.max(0,Math.min(600-pad.w,pad.x));
   };
 
   loop=setInterval(drawPong,25);
@@ -329,7 +336,7 @@ function drawPong(){
     score++;
   }
 
-  if(ball.y>400) return over();
+  if(ball.y>400)return over();
 
   ctx.fillStyle="#fff";
   ctx.fillRect(pad.x,pad.y,pad.w,pad.h);
@@ -341,7 +348,7 @@ function drawPong(){
   update();
 }
 
-/* ---------- COMMON ---------- */
+/* ================= COMMON ================= */
 function update(){
   document.getElementById("score").innerText=
     `${name} | ${game.toUpperCase()} : ${score}`;
