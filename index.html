@@ -12,10 +12,46 @@ body{
   color:white;
   text-align:center;
   overflow:hidden;
-  background: radial-gradient(circle,#120018,#000);
+  background: radial-gradient(circle,#0b0015,#000);
 }
 
-/* CRT overlay */
+/* ================= INTRO SCREEN (LEVEL UP STYLE) ================= */
+#intro{
+  position:fixed;
+  inset:0;
+  background:url("https://images.unsplash.com/photo-1527430253228-e93688616381?auto=format&fit=crop&w=1200&q=60");
+  background-size:cover;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  z-index:999;
+  animation:fadeOut 2s ease 3s forwards;
+}
+
+#intro h1{
+  font-size:70px;
+  color:#ffcc00;
+  text-shadow:0 0 20px #ff00cc,0 0 40px #00ffff;
+  animation:zoom 1s ease;
+}
+
+#intro p{
+  font-size:18px;
+  color:#fff;
+  opacity:0.8;
+}
+
+@keyframes zoom{
+  from{transform:scale(0.5);opacity:0}
+  to{transform:scale(1);opacity:1}
+}
+
+@keyframes fadeOut{
+  to{opacity:0;visibility:hidden}
+}
+
+/* CRT effect */
 body::after{
   content:"";
   position:fixed;
@@ -23,28 +59,31 @@ body::after{
   pointer-events:none;
   background: repeating-linear-gradient(
     0deg,
-    rgba(255,255,255,0.03),
-    rgba(255,255,255,0.03) 1px,
+    rgba(255,255,255,0.04),
+    rgba(255,255,255,0.04) 1px,
     transparent 2px,
     transparent 4px
   );
-  animation:flick 0.12s infinite;
 }
-@keyframes flick{50%{opacity:0.8}}
+
+/* ================= MENU ================= */
+#menu{
+  padding-top:40px;
+}
 
 .neon{
-  font-size:52px;
+  font-size:55px;
   color:#ff00cc;
   text-shadow:0 0 25px #ff00cc,0 0 40px #00ffff;
 }
 
 button{
-  padding:14px 20px;
-  margin:6px;
+  padding:14px 22px;
+  margin:8px;
   border:none;
   border-radius:12px;
   cursor:pointer;
-  transition:0.2s;
+  transition:0.15s;
 }
 button:active{transform:scale(0.9)}
 .selected{background:#ff00cc;color:white}
@@ -57,7 +96,7 @@ input{
   color:white;
 }
 
-/* arcade frame */
+/* ================= ARCADE SCREEN ================= */
 #arcade{
   display:none;
   height:100vh;
@@ -76,10 +115,12 @@ input{
 canvas{
   width:92vw;
   max-width:600px;
+  height:auto;
   background:black;
   border-radius:10px;
 }
 
+/* ================= SCORE ================= */
 #score{
   position:absolute;
   top:10px;
@@ -88,6 +129,7 @@ canvas{
   color:#00ffff;
 }
 
+/* ================= OVERLAY ================= */
 #overlay{
   position:absolute;
   top:50%;
@@ -100,8 +142,14 @@ canvas{
 
 <body>
 
+<!-- INTRO -->
+<div id="intro">
+  <h1>ARCADE X</h1>
+  <p>Press Start Button</p>
+</div>
+
+<!-- MENU -->
 <div id="menu">
-  <h1>Arcade X Pro+</h1>
   <div class="neon">EGAMES</div>
 
   <button onclick="select('snake',this)">🐍 Snake</button>
@@ -130,8 +178,7 @@ canvas{
 const c=document.getElementById("c");
 const ctx=c.getContext("2d");
 
-let game=null,loop,name="";
-let score=0;
+let game=null,loop,name="",score=0;
 
 /* ================= MENU ================= */
 function select(g,el){
@@ -183,14 +230,13 @@ function snake(){
 
   document.onkeydown=e=>{
     let k=e.key.toLowerCase();
-
     if((k==="w"||k==="arrowup")&&dy===0){dx=0;dy=-20;}
     if((k==="s"||k==="arrowdown")&&dy===0){dx=0;dy=20;}
     if((k==="a"||k==="arrowleft")&&dx===0){dx=-20;dy=0;}
     if((k==="d"||k==="arrowright")&&dx===0){dx=20;dy=0;}
   };
 
-  loop=setInterval(drawSnake,90);
+  loop=setInterval(drawSnake,95);
 }
 
 function food(){
@@ -229,7 +275,8 @@ function runner(){
   o=[];g=1;score=0;
 
   document.onkeydown=e=>{
-    if((e.code==="Space"||e.key==="ArrowUp")&&p.y===300)p.vy=-15;
+    if((e.code==="Space"||e.key==="ArrowUp")&&p.y===300)
+      p.vy=-15;
   };
 
   loop=setInterval(drawRunner,30);
@@ -280,7 +327,7 @@ function pong(){
     pad.x=Math.max(0,Math.min(600-pad.w,pad.x));
   };
 
-  loop=setInterval(drawPong,25); // slightly faster ball
+  loop=setInterval(drawPong,22); /* faster ball */
 }
 
 function drawPong(){
@@ -295,13 +342,13 @@ function drawPong(){
 
   if(ball.y>pad.y&&ball.x>pad.x&&ball.x<pad.x+pad.w){
     ball.dy*=-1;
-    ball.dx*=1.09; // faster bounce
+    ball.dx*=1.12; /* faster bounce */
     score++;
   }
 
   if(ball.y>400) return over();
 
-  ctx.fillStyle="#fff";
+  ctx.fillStyle="white";
   ctx.fillRect(pad.x,pad.y,pad.w,pad.h);
 
   ctx.beginPath();
