@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>E-GAMES ARCADE X</title>
+<title>E-GAMES ARCADE</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 
@@ -13,11 +13,11 @@ body{
   font-family:'Press Start 2P', cursive;
   background:#000;
   color:#00ffee;
-  text-align:center;
   overflow:hidden;
+  text-align:center;
 }
 
-/* CRT */
+/* CRT scanlines */
 body::before{
   content:"";
   position:fixed;
@@ -32,17 +32,19 @@ body::before{
   pointer-events:none;
 }
 
+/* glow sky base */
 body::after{
   content:"";
   position:fixed;
   inset:0;
-  background:radial-gradient(circle at center,#1a0033,#000);
+  background: radial-gradient(circle at 50% 30%, #220044, #000);
   z-index:-1;
 }
 
 /* MENU */
 #menu{padding-top:60px;}
 .title{font-size:28px;color:#ff00cc;text-shadow:0 0 10px #ff00cc;}
+
 button{
   font-family:'Press Start 2P', cursive;
   padding:10px;
@@ -58,11 +60,11 @@ button:active{transform:scale(0.95);}
 input{
   padding:10px;
   background:#111;
-  border:none;
   color:#00ffee;
+  border:none;
 }
 
-/* ARCADE */
+/* arcade */
 #arcade{
   display:none;
   height:100vh;
@@ -72,9 +74,9 @@ input{
 
 .machine{
   border:6px solid #333;
-  background:#050505;
   padding:10px;
-  box-shadow:0 0 25px #ff00cc;
+  background:#050505;
+  box-shadow:0 0 30px #ff00cc;
 }
 
 canvas{
@@ -149,50 +151,94 @@ function start(){
 
   clearInterval(loop);
 
-  if(game==="snake") snake();
   if(game==="runner") runner();
+  if(game==="snake") snake();
   if(game==="pong") pong();
 }
 
-/* ================= FOREST BACKGROUND ================= */
-let trees=[];
+/* =========================
+   🌲 ULTRA FOREST BACKGROUND
+========================= */
+
+let bgFar=[],bgMid=[],bgNear=[];
 let groundX=0;
 
-function drawForest(){
-  // moving ground
-  ctx.fillStyle="#003300";
-  ctx.fillRect(0,350,600,50);
+function initForest(){
+  for(let i=0;i<10;i++){
+    bgFar.push({x:i*80,y:200});
+  }
+  for(let i=0;i<8;i++){
+    bgMid.push({x:i*100,y:240});
+  }
+  for(let i=0;i<6;i++){
+    bgNear.push({x:i*120,y:280});
+  }
+}
 
-  groundX-=4;
+function drawTree(x,y,size,layer){
+  // trunk
+  ctx.fillStyle="#3b2a1a";
+  ctx.fillRect(x,y,size/4,size);
+
+  // leaves (layer shading)
+  ctx.fillStyle=layer;
+  ctx.beginPath();
+  ctx.arc(x+size/8,y,size/2,0,Math.PI*2);
+  ctx.fill();
+}
+
+function drawForest(){
+
+  // sky fog gradient illusion
+  let g=ctx.createLinearGradient(0,0,0,400);
+  g.addColorStop(0,"#1a0033");
+  g.addColorStop(1,"#000");
+  ctx.fillStyle=g;
+  ctx.fillRect(0,0,600,400);
+
+  // far trees (slow)
+  bgFar.forEach(t=>{
+    t.x-=1;
+    if(t.x<-50)t.x=650;
+    drawTree(t.x,t.y,20,"#0a3d0a");
+  });
+
+  // mid trees
+  bgMid.forEach(t=>{
+    t.x-=2;
+    if(t.x<-50)t.x=650;
+    drawTree(t.x,t.y,30,"#0f5a0f");
+  });
+
+  // near trees (fast)
+  bgNear.forEach(t=>{
+    t.x-=4;
+    if(t.x<-50)t.x=650;
+    drawTree(t.x,t.y,40,"#16a016");
+  });
+
+  // ground motion
+  groundX-=6;
   if(groundX<-20)groundX=0;
+
+  ctx.fillStyle="#003300";
+  ctx.fillRect(0,340,600,60);
 
   for(let i=0;i<600;i+=40){
     ctx.fillStyle="#00aa00";
     ctx.fillRect(i+groundX,340,20,10);
   }
-
-  // trees (parallax)
-  trees.forEach(t=>{
-    t.x-=t.speed;
-
-    ctx.fillStyle="#005500";
-    ctx.fillRect(t.x,t.y,10,40);
-
-    ctx.fillStyle="#007700";
-    ctx.fillRect(t.x-10,t.y,30,20);
-  });
-
-  trees=trees.filter(t=>t.x>-50);
-
-  if(Math.random()<0.03){
-    trees.push({x:600,y:300+Math.random()*20,speed:2});
-  }
 }
 
-/* ================= RUNNER (FIXED + FOREST) ================= */
+/* =========================
+   🏃 RUNNER (FIXED + REAL FEEL)
+========================= */
+
 let p,o,g;
 
 function runner(){
+  initForest();
+
   p={x:50,y:300,vy:0};
   o=[];
   g=1;
@@ -212,7 +258,7 @@ function drawRunner(){
 
   drawForest();
 
-  // player physics
+  // physics
   p.vy+=g;
   p.y+=p.vy;
   if(p.y>300)p.y=300;
@@ -222,46 +268,56 @@ function drawRunner(){
     o.push({
       x:600,
       y:320,
-      w:20+Math.random()*20,
-      h:20+Math.random()*20
+      w:20+Math.random()*25,
+      h:20+Math.random()*15
     });
   }
 
-  // move obstacles
-  o.forEach(x=>x.x-=6);
-  o=o.filter(x=>x.x>-40);
+  // move rocks
+  o.forEach(r=>r.x-=7);
+  o=o.filter(r=>r.x>-50);
 
   // collision
-  for(let x of o){
+  for(let r of o){
     if(
-      p.x < x.x+x.w &&
-      p.x+30 > x.x &&
-      p.y < x.y+x.h &&
-      p.y+30 > x.y
+      p.x < r.x+r.w &&
+      p.x+30 > r.x &&
+      p.y < r.y+r.h &&
+      p.y+30 > r.y
     ){
       return over();
     }
   }
 
-  // draw player
-  ctx.fillStyle="#00ffff";
-  ctx.fillRect(p.x,p.y,30,30);
+  // player (slight bob animation)
+  let bob=Math.sin(Date.now()/80)*2;
 
-  // rocks
-  ctx.fillStyle="#888";
-  o.forEach(x=>ctx.fillRect(x.x,x.y,x.w,x.h));
+  ctx.fillStyle="#00ffff";
+  ctx.fillRect(p.x,p.y+bob,30,30);
+
+  // rocks with shading
+  o.forEach(r=>{
+    ctx.fillStyle="#666";
+    ctx.fillRect(r.x,r.y,r.w,r.h);
+
+    ctx.fillStyle="#aaa";
+    ctx.fillRect(r.x+2,r.y+2,r.w-4,r.h-4);
+  });
 
   score++;
   update();
 }
 
-/* ================= SNAKE ================= */
+/* =========================
+   🐍 SNAKE
+========================= */
+
 let s,dx,dy,f;
 
 function snake(){
   s=[{x:200,y:200}];
   dx=20;dy=0;
-  f=food();
+  f={x:0,y:0};
   score=0;
 
   document.onkeydown=e=>{
@@ -275,6 +331,7 @@ function snake(){
   loop=setInterval(drawSnake,110);
 }
 
+/* ========================= */
 function drawSnake(){
   ctx.clearRect(0,0,600,400);
 
@@ -283,9 +340,10 @@ function drawSnake(){
   if(h.x<0||h.y<0||h.x>=600||h.y>=400)return over();
 
   s.unshift(h);
+
   if(h.x===f.x&&h.y===f.y){
     score++;
-    f=food();
+    f={x:Math.floor(Math.random()*30)*20,y:Math.floor(Math.random()*20)*20};
   }else s.pop();
 
   ctx.fillStyle="#00ff88";
@@ -297,11 +355,10 @@ function drawSnake(){
   update();
 }
 
-function food(){
-  return {x:Math.floor(Math.random()*30)*20,y:Math.floor(Math.random()*20)*20};
-}
+/* =========================
+   🏓 PONG
+========================= */
 
-/* ================= PONG ================= */
 let pad,ball,hold=false;
 
 function pong(){
@@ -348,7 +405,7 @@ function drawPong(){
   update();
 }
 
-/* ================= COMMON ================= */
+/* ========================= */
 function update(){
   document.getElementById("score").innerText=
     `${name} | ${game.toUpperCase()} : ${score}`;
